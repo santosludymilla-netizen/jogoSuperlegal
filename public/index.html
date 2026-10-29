@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jogoSuperlegal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <div class="fx fx--scanlines" aria-hidden="true"></div>
+  <div class="fx fx--vignette" aria-hidden="true"></div>
+  <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+
+  <div id="blood" class="blood" aria-hidden="true">
+    <span style="--x: 8%;  --h: 74px; --w: 11px; --d: -2s;"></span>
+    <span style="--x: 19%; --h: 38px; --w: 7px;  --d: -7s;"></span>
+    <span style="--x: 33%; --h: 96px; --w: 14px; --d: -4s;"></span>
+    <span style="--x: 47%; --h: 28px; --w: 6px;  --d: -9s;"></span>
+    <span style="--x: 62%; --h: 64px; --w: 10px; --d: -1s;"></span>
+    <span style="--x: 76%; --h: 44px; --w: 8px;  --d: -6s;"></span>
+    <span style="--x: 88%; --h: 82px; --w: 12px; --d: -3s;"></span>
+    <span style="--x: 96%; --h: 34px; --w: 6px;  --d: -8s;"></span>
+  </div>
+
+  <div id="menu-coins" class="menu-coins">
+    <span class="money">$</span>
+    <span id="menu-coins-value">0</span>
+  </div>
+
+  <div id="menu-player" class="menu-player" hidden>
+    <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
+    <span id="menu-player-perk" class="menu-player-perk"></span>
+    <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button">SAIR</button>
+  </div>
+
+  <main id="menu" class="menu">
+    <h1 class="title" data-text="JOGO SUPERLEGAL">JOGO SUPERLEGAL</h1>
+    <p class="tagline">SOBREVIVA À NOITE</p>
+
+    <div class="buttons">
+      <button id="btn-play" class="btn btn--play" type="button">JOGAR</button>
+
+      <button id="btn-shop" class="btn btn--shop" type="button">
+        <span class="money" aria-hidden="true">$</span>
+        <span>LOJA</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Login / cadastro -->
+  <section id="auth" class="overlay overlay--auth" hidden>
+    <div class="panel panel--auth">
+      <h1 class="title title--small" data-text="JOGO SUPERLEGAL">JOGO SUPERLEGAL</h1>
+      <p class="overlay-sub">ENTRE OU CRIE UMA CONTA PARA SALVAR SEU PROGRESSO</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab is-active" type="button" data-mode="login">ENTRAR</button>
+        <button class="auth-tab" type="button" data-mode="register">CRIAR CONTA</button>
+      </div>
+
+      <form id="auth-form" class="auth-form" novalidate>
+        <label class="auth-field">
+          <span>NOME</span>
+          <input id="auth-name" name="name" type="text" maxlength="16" autocomplete="username" spellcheck="false">
+        </label>
+
+        <label class="auth-field">
+          <span>SENHA</span>
+          <input id="auth-password" name="password" type="password" maxlength="8" autocomplete="current-password">
+        </label>
+
+        <p id="auth-error" class="auth-error" role="alert"></p>
+
+        <button id="auth-submit" class="btn btn--play btn--compact" type="submit">ENTRAR</button>
+      </form>
+
+      <p class="auth-hint">NOME: 3 A 16 LETRAS/NÚMEROS · SENHA: 4 A 8 CARACTERES COM PELO MENOS 1 NÚMERO</p>
+    </div>
+  </section>
+
+  <!-- HUD da partida -->
+  <section id="hud" class="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-left">
+        <p class="hud-row"><span class="hud-label">DIA</span> <strong id="hud-day">1</strong></p>
+        <p class="hud-row"><span class="hud-label">ZUMBIS</span> <strong id="hud-zombies">0/1</strong></p>
+        <p class="hud-row"><span class="hud-label">DANO</span> <strong id="hud-damage">5</strong></p>
+        <p class="hud-row"><span class="hud-label">RES</span> <strong id="hud-resist">0</strong></p>
+        <div class="hud-health">
+          <div class="health-bar"><div id="health-fill"></div></div>
+          <span id="health-text">100</span>
+        </div>
+      </div>
+      <div class="hud-coins">
+        <span class="money">$</span>
+        <strong id="hud-coins">0</strong>
+      </div>
+    </div>
+
+    <div id="boss-bar" class="boss-bar" hidden>
+      <p id="boss-name" class="boss-name">CHEFE</p>
+      <div class="boss-health"><div id="boss-fill"></div></div>
+    </div>
+
+    <p id="hud-tip" class="hud-tip"></p>
+  </section>
+
+  <!-- Escolha da ferramenta -->
+  <section id="tool-select" class="overlay" hidden>
+    <div class="panel panel--tools">
+      <h2 class="overlay-title">ESCOLHA A FERRAMENTA</h2>
+      <p id="tool-meta" class="overlay-sub">MELHOR DIA: <strong>1</strong> · +4 DANO POR NOITE · +5 POR POÇÃO</p>
+
+      <div id="tool-grid" class="tool-grid"></div>
+    </div>
+  </section>
+
+  <!-- Oferta de ferramenta a cada 2 dias -->
+  <section id="tool-offer" class="overlay" hidden>
+    <div class="panel panel--tools">
+      <h2 class="overlay-title overlay-title--gold">OFERTA DE FERRAMENTA</h2>
+      <p id="offer-meta" class="overlay-sub">DUAS FERRAMENTAS MELHORES, MAS CADA UMA TEM UMA DESVANTAGEM</p>
+
+      <div id="offer-grid" class="tool-grid"></div>
+
+      <button id="offer-skip" class="btn btn--ghost" type="button">RECUSAR OFERTA</button>
+    </div>
+  </section>
+
+  <!-- Loja -->
+  <section id="shop" class="overlay" hidden>
+    <div class="panel panel--shop">
+      <div class="panel-head">
+        <h2 class="overlay-title">LOJA</h2>
+        <div class="shop-coins"><span class="money">$</span> <span id="shop-coins-value">0</span></div>
+      </div>
+
+      <div id="shop-items" class="shop-items"></div>
+
+      <button id="shop-back" class="btn btn--ghost" type="button">VOLTAR</button>
+    </div>
+  </section>
+
+  <!-- Fim de jogo -->
+  <section id="gameover" class="overlay" hidden>
+    <div class="panel">
+      <h2 class="overlay-title overlay-title--blood">VOCÊ MORREU</h2>
+      <p id="gameover-info" class="overlay-sub">VOCÊ CHEGOU AO DIA 1</p>
+      <p class="overlay-sub"><span class="money">$</span> <span id="gameover-coins">0</span> GANHAS NESTA PARTIDA</p>
+      <button id="gameover-menu" class="btn btn--play btn--compact" type="button">VOLTAR AO MENU</button>
+    </div>
+  </section>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

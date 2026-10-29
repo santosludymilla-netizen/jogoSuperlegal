@@ -1,1 +1,308 @@
 # jogoSuperlegal
+
+Jogo de sobrevivência de zumbis em 2D pixel art que roda no navegador, feito com Node.js.
+Estética dark e macabra com contraste entre **verde neon** e **rosa neon**.
+
+> Este README é o registro vivo do planejamento: toda ideia ou etapa nova é adicionada aqui.
+
+**Status atual:** login com banco de dados, menu, floresta, sobrevivência por noites, combate, arsenal com raridades, ofertas de ferramenta, chefe a cada 10 dias, loja de ferramentas iniciais, poções e personagens (skins) jogáveis.
+
+---
+
+## Como rodar
+
+Requer **Node.js 22.5 ou mais novo** (o banco usa `node:sqlite`, nativo do Node).
+
+```bash
+npm install
+npm start
+```
+
+Abre em [http://localhost:3000](http://localhost:3000).
+
+Para desenvolvimento com recarga automática do servidor:
+
+```bash
+npm run dev
+```
+
+O banco é criado sozinho em `data/jogo.db` na primeira execução.
+
+### Controles
+
+| Ação | Comando |
+|---|---|
+| Mover | `W` `A` `S` `D` ou setas |
+| Atacar | segurar o botão esquerdo do mouse (mira no cursor) |
+| Voltar / fechar | `ESC` nos menus |
+
+---
+
+## Conta e login
+
+- É obrigatório **entrar ou criar conta** antes de jogar.
+- **Nome:** 3 a 16 caracteres, apenas letras, números e `_`. É **único** (não diferencia maiúsculas de minúsculas).
+- **Senha:** 4 a 8 caracteres, apenas letras/números, com **pelo menos 1 número**.
+- A senha é guardada com **scrypt + salt**; o servidor nunca vê a senha em texto puro.
+- A sessão fica em um token `Bearer` válido por **30 dias**, guardado no `localStorage`.
+- **Todo o progresso fica no servidor** (SQLite): moedas, melhor dia, poções, ferramentas compradas, personagens e o personagem equipado. O servidor é a fonte da verdade dos valores.
+
+---
+
+## Regras do jogo
+
+### Noites, dificuldade e chefes
+
+- O jogo é dividido em **noites (dias)**. A partida sempre começa no **dia 1**.
+- O **dia 1 é o tutorial** e tem **1 zumbi**.
+- A cada novo dia entram **+2 zumbis**: dia 1 = 1, dia 2 = 3, dia 3 = 5...
+- A noite acaba quando todos os zumbis dela morrem.
+- A dificuldade cresce **todo dia**:
+  - vida: `30 × (1 + 0,08 × (dia − 1))` → **+8% por dia**
+  - dano: `10 × (1 + 0,05 × (dia − 1))` → **+5% por dia**
+  - velocidade: `+2% por dia` (até +80%)
+  - quantidade: +2 zumbis por noite
+- **Chefe a cada 10 dias** (dias 10, 20, 30...). A noite do chefe tem os zumbis normais + 1 chefe.
+  - A vida do chefe é proporcional ao **DPS do jogador** (`dano ÷ recarga`), mirando em uma luta de alguns segundos.
+  - O dano do chefe é proporcional ao **dano por golpe** do jogador.
+  - O chefe bate forte e, a cada ~3,5 s, dá uma **pancada no chão** com onda de choque.
+  - A barra de vida do chefe aparece no topo da tela; derrotá-lo dá um bônus de moedas (`15 + 2 × dia`).
+
+### Moedas
+
+- **1 moeda a cada 2 zumbis mortos** (a contagem continua entre noites).
+- **5 moedas por noite sobrevivida** (multiplicado pelo bônus do personagem).
+- **Bônus do chefe:** `15 + 2 × dia`, também multiplicado pelo personagem.
+- As moedas ficam salvas no banco e aparecem no **canto superior direito do menu** e no HUD.
+
+### Ferramentas
+
+Escolhidas no início de cada partida. Cada ferramenta tem **dano próprio**, recarga e alcance:
+
+| Ferramenta | Raridade | Dano base | Recarga | Observação |
+|---|---|---|---|---|
+| Faca | COMUM | 5 | 0,30 s | rápida, alcance curto (vem de graça) |
+| Machado | COMUM | 5 | 0,62 s | arco amplo, maior alcance |
+| Taco de beisebol | COMUM | 8 | 0,55 s | arco amplo e bom knockback |
+| Facão | COMUM | 9 | 0,38 s | rápido e equilibrado |
+| Lança envenenada | RARA | 15 | 0,50 s | golpe preciso e longo, acerta até 2 zumbis |
+| Arma | RARA | 30 | 0,90 s | tiro cerrado, acerta 1 alvo por disparo |
+| Lança-chamas | MÍTICA | 20 | 0,24 s | cone de fogo que atinge todos na área |
+
+**Disponibilidade:** faca sempre disponível; machado, taco e facão liberam quando **comprados na loja**. As raras/míticas entram por **sorte** de acordo com o seu **melhor dia**:
+
+| Ferramenta | Aparece a partir do | Chance |
+|---|---|---|
+| Lança envenenada | dia 3 | 25% no dia 3, +3% por dia (máx. 75%) |
+| Arma | dia 12 | 15% no dia 12, +2,5% por dia (máx. 60%) |
+| Lança-chamas | dia 12 | 5% no dia 12, subindo até ~22% antes do dia 30; 30% no dia 30 e +2% por dia (máx. 70%) |
+
+O sorteio acontece ao abrir a escolha de ferramenta. As cartas mostram raridade, dano real e o motivo de estarem bloqueadas (dia mínimo, sorte que não saiu ou “compre na loja”).
+
+### Ofertas de ferramenta (a cada 2 dias)
+
+- Ao amanhecer dos dias **3, 5, 7, 9, 11...** (depois de sobreviver a uma noite), o jogo oferece **duas ferramentas melhores**.
+- Você pode **aceitar uma** (fica equipada na hora, no lugar da atual) ou **recusar** as duas.
+- Toda ferramenta de oferta é mais forte, mas tem uma **desvantagem**:
+
+| Ferramenta | Raridade | Dano | Recarga | Desvantagem |
+|---|---|---|---|---|
+| Motosserra | RARA | 26 | 0,34 s | -18% de velocidade |
+| Besta | RARA | 34 | 1,15 s | recarga lenta |
+| Foice | MÍTICA | 30 | 0,80 s | -10% de velocidade |
+| Submetralhadora | RARA | 12 | 0,14 s | dano baixo por tiro |
+| Marra | MÍTICA | 44 | 1,20 s | -20% de velocidade |
+
+Essas ferramentas **não aparecem na loja nem na escolha inicial**: só nascem nas ofertas.
+
+### Progressão por noite
+
+- A cada noite sobrevivida o jogador ganha **+4 de dano** com a ferramenta e **+1 de resistência**.
+- A resistência reduz o dano recebido em valor fixo, mas cada golpe sempre causa **pelo menos 1** de dano.
+- O HUD mostra os valores atuais de **DANO** e **RES**.
+
+### Loja
+
+O botão **$ LOJA** no menu abre a loja, dividida em três seções:
+
+**Ferramentas iniciais** (compra única, liberam a ferramenta para escolher no começo da partida):
+
+| Ferramenta | Preço |
+|---|---|
+| Machado | $30 |
+| Taco de beisebol | $45 |
+| Facão | $55 |
+
+**Personagens (skins)** — cada um tem uma vantagem (e às vezes uma desvantagem):
+
+| Personagem | Preço | Vantagem |
+|---|---|---|
+| Sobrevivente | grátis | equilibrado, sem bônus |
+| Corredor | $120 | +15% de velocidade |
+| Médico | $150 | +40 de vida e +1 de resistência |
+| Brutamontes | $180 | +20 de vida e +12% de dano, mas -5% de velocidade |
+| Ladrão | $200 | +50% de moedas, mas -10 de vida e -5% de dano |
+| Tanque | $220 | +3 de resistência, mas -10% de velocidade |
+
+Cada personagem tem também sua própria paleta de cores no sprite. O personagem equipado muda vida máxima, velocidade, dano, resistência e ganho de moedas na partida. Dá para trocar de personagem a qualquer momento na loja.
+
+**Melhoria** — **Poção de Ferramenta**: soma **+5 de dano em todas as ferramentas**. Uma poção é liberada a cada **10 dias sobrevividos** (melhor dia): dia 10 libera a 1ª, dia 20 a 2ª, e assim por diante. Preço: **$10** cada.
+
+### Progresso salvo
+
+O banco SQLite (`data/jogo.db`) guarda: conta, moedas, melhor dia, mortes, partidas, ferramentas, personagens e poções. Ao entrar em qualquer navegador, o progresso vem do servidor.
+
+---
+
+## Stack
+
+- **Node.js + Express 5** — API e servidor de arquivos estáticos
+- **`node:sqlite`** — banco de dados local, sem dependência externa
+- **HTML + CSS + JavaScript puro** — sem framework e sem etapa de build
+- **Canvas 2D** — cenário e partida em resolução interna baixa, escalada com `image-rendering: pixelated`
+- **DOM/CSS** — menus, HUD, loja, escolha de ferramenta e ofertas
+- **Fonte Press Start 2P** — self-hosted em `public/assets/fonts`
+
+---
+
+## Estrutura
+
+```
+jogoSuperlegal/
+├── server.js                 # Express + rotas da API + estáticos
+├── db.js                     # SQLite: contas, sessões, compras, progresso
+├── package.json
+├── README.md
+├── data/
+│   └── jogo.db               # criado automaticamente
+└── public/
+    ├── index.html            # login, menu, HUD, loja, escolha, ofertas, game over
+    ├── css/style.css         # tema neon/macabro, HUD, loja e painéis
+    ├── js/
+    │   ├── main.js           # loop principal, estados, login, loja e HUD
+    │   ├── scene.js          # floresta animada do menu
+    │   ├── game.js           # partida: player, zumbis, chefe, ofertas, combate
+    │   └── save.js           # cliente da API e estado local do jogador
+    └── assets/
+        └── fonts/            # Press Start 2P (woff2)
+```
+
+### API
+
+| Rota | Método | Função |
+|---|---|---|
+| `/api/auth/register` | POST | cria conta (nome único) e devolve token |
+| `/api/auth/login` | POST | entra e devolve token |
+| `/api/auth/logout` | POST | invalida a sessão atual |
+| `/api/state` | GET | jogador + catálogo da loja |
+| `/api/run/report` | POST | soma moedas, mortes, partidas e melhor dia |
+| `/api/shop/tool` | POST | compra ferramenta inicial |
+| `/api/shop/potion` | POST | compra poção liberada pelo melhor dia |
+| `/api/shop/character` | POST | compra personagem |
+| `/api/character/select` | POST | equipa personagem comprado |
+
+Todas as rotas, menos cadastro/login, exigem `Authorization: Bearer <token>`.
+
+Para depurar no console do navegador, abra com `?debug=1` para expor `window.__jogo` (jogo, save e loja).
+
+---
+
+## Identidade visual
+
+| Uso | Cor |
+|---|---|
+| Fundo | `#050505` |
+| Verde neon | `#39ff14` |
+| Rosa neon | `#ff2e88` |
+| Sangue | `#8b0000` |
+| Osso / texto secundário | `#d8d8d0` |
+| Ouro (chefe, ofertas, vantagens) | `#ffb000` |
+
+- **Menu:** floresta de pinheiros em silhueta, lua de sangue, névoa, brasas, sangue escorrendo, título com glow e flicker, zumbis humanos macabros (olhos verdes ou rosas) andando ao fundo.
+- **Partida:** clareira na floresta vista de cima, copas escuras nas bordas, vaga-lumes, sangue no chão e zumbis humanos com ossos e sangue à mostra.
+- **Botões:** **JOGAR** verde neon retangular; **$ LOJA** menor, rosa, com símbolo de dinheiro.
+- **Chefe:** sprite em dobro com coroa dourada, aura rosa pulsante, barra de vida própria e onda de choque.
+- **Ofertas:** painel com cartas de raridade e a desvantagem em vermelho.
+- **Personagens:** cada skin troca as cores do sprite (jaqueta, pele e detalhe).
+
+---
+
+## Planejamento
+
+### Parte 1 — Base + menu macabro ✅
+
+- [x] `package.json` + `server.js` (Express, `npm start`)
+- [x] Menu com título glow, botões e navegação
+- [x] Cenário animado de floresta (lua de sangue, névoa, brasas, sangue no topo)
+- [x] Zumbis redesenhados: humanos, macabros, com olhos brilhantes
+- [x] Botão **JOGAR** centralizado e retangular (verde/preto)
+- [x] Botão **$ LOJA** menor, rosa, com símbolo de dinheiro
+- [x] Contador de moedas no canto superior direito do menu
+
+### Parte 2 — Sobrevivência ✅
+
+- [x] Movimento em 8 direções (WASD/setas)
+- [x] Arena de floresta com limite de borda
+- [x] Zumbis com perseguição, separação e ataque
+- [x] Vida, dano, invencibilidade curta e morte
+- [x] HUD: dia, zumbis da noite, dano, resistência, vida e moedas
+- [x] Tutorial no dia 1 com 1 zumbi
+
+### Parte 3 — Combate e progressão ✅
+
+- [x] Ataque com mira no mouse, arco de golpe e knockback
+- [x] Sangue no chão, partículas e tremor de tela
+- [x] +2 zumbis por dia e dificuldade crescente por noite
+- [x] 1 moeda a cada 2 mortes e +5 por noite sobrevivida
+- [x] Escolha de ferramenta no início (faca ou machado, 5 de dano)
+- [x] Tela de game over com dia alcançado e moedas ganhas
+
+### Parte 4 — Loja ✅
+
+- [x] Loja aberta pelo botão **$ LOJA**
+- [x] Poção de ferramenta (+5 de dano) liberada a cada 10 dias
+- [x] Compra com moedas e efeito permanente
+- [x] Save do progresso
+
+### Parte 5 — Polimento ✅
+
+- [x] Animação de caminhada do personagem (pernas, braços e balanço do corpo)
+- [x] Ferramenta desenhada na mão, com animação de golpe em arco
+- [x] Golpe atinge também zumbis colados ao redor do jogador, mesmo fora da mira
+- [x] Arsenal expandido: taco, facão, lança envenenada, arma e lança-chamas
+- [x] Raridades (comum/rara/mítica) com sorte de aparição por melhor dia
+- [x] Dano por ferramenta +4 de dano e +1 de resistência a cada noite
+
+### Parte 6 — Conta, loja e chefes ✅
+
+- [x] Login/cadastro com nome único e senha validada
+- [x] Banco SQLite (`data/jogo.db`) com sessões de 30 dias
+- [x] Progresso e compras validados no servidor
+- [x] Compra de ferramentas iniciais (machado, taco, facão)
+- [x] Chefe a cada 10 dias, com vida/dano proporcionais ao jogador
+- [x] Ofertas de 2 ferramentas a cada 2 dias, cada uma com desvantagem
+- [x] Dificuldade diária (+8% vida, +5% dano, +2% velocidade)
+- [x] Personagens (skins) compráveis com vantagens e paleta própria
+- [x] Equipar/trocar personagem na loja
+- [x] Botão de sair da conta
+- [ ] Áudio (golpes, dano, ambiente) via WebAudio
+- [ ] Pause durante a partida
+- [ ] Balanceamento fino das noites e dos chefes
+- [ ] Mais personagens e ferramentas de oferta
+
+---
+
+## Decisões técnicas
+
+- Canvas com resolução interna de 1/4 da tela: pixels grandes e nítidos em qualquer monitor.
+- Cenário do menu desenhado por código com PRNG de semente fixa.
+- Partida em canvas separado por estado (`auth`, `menu`, `tool`, `playing`, `offer`, `shop`, `gameover`), com um único `requestAnimationFrame`.
+- Zumbis e jogador desenhados por sprites de texto (pixel a pixel) — fáceis de editar.
+- O jogador alterna duas poses de passada; a ferramenta escolhida é desenhada em pixel art, girada a partir da mão e acompanha a animação do golpe.
+- Cada golpe tem dois alcances: o arco na direção do mouse e um raio curto ao redor do jogador para acertar zumbis colados.
+- A arma é um tiro cerrado (traço de bala + faísca) que atinge no máximo 1 alvo; o lança-chamas desenha um cone de fogo e atinge todos os zumbis nele.
+- Fundo da arena e manchas de sangue ficam em canvas offscreen para não redesenhar a floresta a cada frame.
+- Dano e resistência escalam por noite (+4 de dano e +1 de resistência); o dano base vem da ferramenta, o personagem multiplica e a “poção” da loja soma +5 em todas.
+- O chefe usa o mesmo sistema de zumbis (com `boss: true`), o que dá perseguição, knockback reduzido e barra de vida de graça; a escala vem do DPS atual do jogador.
+- Ofertas são sorteio sem repetir a ferramenta atual, feitas no cliente; o servidor valida apenas moedas, compras e progresso.
+- O servidor nunca confia no cliente para saldo: o relato de partida soma moedas com teto por envio, e cada compra é validada e debitada em transação.
