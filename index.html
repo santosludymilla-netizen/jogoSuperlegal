@@ -39,6 +39,7 @@
 
     <div id="menu-player" class="menu-player" hidden>
       <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
+      <span id="menu-player-level" class="menu-player-level">NÍVEL 1 · SOBREVIVENTE</span>
       <span id="menu-player-perk" class="menu-player-perk"></span>
       <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button">SAIR</button>
     </div>
@@ -96,7 +97,7 @@
     <div class="hud-top">
       <div class="hud-left">
         <p class="hud-row"><span class="hud-label">DIA</span> <strong id="hud-day">1</strong></p>
-        <p class="hud-row"><span class="hud-label">FASE</span> <strong id="hud-phase">DIA 30s</strong></p>
+        <p class="hud-row"><span class="hud-label">FASE</span> <strong id="hud-phase">DIA 10s</strong></p>
         <p class="hud-row"><span class="hud-label">ZUMBIS</span> <strong id="hud-zombies">0/1</strong></p>
         <p class="hud-row"><span class="hud-label">DANO</span> <strong id="hud-damage">5</strong></p>
         <p class="hud-row"><span class="hud-label">RES</span> <strong id="hud-resist">0</strong></p>
@@ -130,6 +131,27 @@
     </div>
   </section>
 
+  <!-- Recompensa do baú dourado -->
+  <section id="chest-reward" class="overlay" hidden>
+    <div class="panel panel--chest">
+      <p class="chest-kicker">BAÚ DOURADO</p>
+      <h2 class="overlay-title">VOCÊ GANHOU</h2>
+
+      <div id="chest-reward-card" class="chest-card"></div>
+
+      <p id="chest-compare" class="overlay-sub chest-compare"></p>
+
+      <div class="chest-actions">
+        <button id="chest-equip" class="btn btn--play btn--compact" type="button">
+          TROCAR DE FERRAMENTA
+        </button>
+        <button id="chest-keep" class="btn btn--ghost" type="button">
+          CONTINUAR COM A MINHA
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Tutorial do primeiro dia -->
   <section id="tutorial" class="overlay" hidden>
     <div class="panel panel--tutorial">
@@ -158,6 +180,15 @@
       </div>
 
       <p class="overlay-sub">TUDO O QUE VOCÊ JÁ COMPROU OU GANHOU</p>
+
+      <div class="inventory-level">
+        <div class="inventory-level-head">
+          <span id="inventory-rank" class="inventory-rank">SOBREVIVENTE</span>
+          <span id="inventory-level-value" class="inventory-level-value">NÍVEL 1</span>
+        </div>
+        <div class="inventory-level-bar"><div id="inventory-level-fill"></div></div>
+        <p id="inventory-xp" class="inventory-xp">0 / 15 XP · FALTAM 15</p>
+      </div>
 
       <h3 class="inventory-subtitle">ITENS</h3>
       <div id="inventory-items" class="inventory-grid"></div>

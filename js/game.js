@@ -10,65 +10,65 @@ export const TOOLS = {
   knife: {
     name: 'FACA',
     rarity: 'comum',
-    damage: 5,
-    cooldown: 0.3,
-    swing: 0.18,
-    range: 32,
-    closeRange: 16,
-    arc: 1.3,
-    knock: 70,
+    damage: 8,
+    cooldown: 0.22,
+    swing: 0.15,
+    range: 34,
+    closeRange: 18,
+    arc: 1.35,
+    knock: 75,
     width: 1,
     style: 'melee',
   },
   axe: {
     name: 'MACHADO',
     rarity: 'comum',
-    damage: 5,
-    cooldown: 0.62,
-    swing: 0.3,
-    range: 42,
-    closeRange: 20,
-    arc: 1.9,
-    knock: 150,
+    damage: 10,
+    cooldown: 0.5,
+    swing: 0.26,
+    range: 44,
+    closeRange: 22,
+    arc: 1.95,
+    knock: 160,
     width: 2,
     style: 'melee',
   },
   bat: {
     name: 'TACO DE BEISEBOL',
     rarity: 'comum',
-    damage: 8,
-    cooldown: 0.55,
-    swing: 0.28,
-    range: 39,
-    closeRange: 19,
-    arc: 1.8,
-    knock: 155,
+    damage: 13,
+    cooldown: 0.44,
+    swing: 0.24,
+    range: 41,
+    closeRange: 21,
+    arc: 1.85,
+    knock: 165,
     width: 2,
     style: 'melee',
   },
   machete: {
     name: 'FACÃO',
     rarity: 'comum',
-    damage: 9,
-    cooldown: 0.38,
-    swing: 0.21,
-    range: 36,
-    closeRange: 17,
-    arc: 1.45,
-    knock: 90,
+    damage: 14,
+    cooldown: 0.3,
+    swing: 0.18,
+    range: 38,
+    closeRange: 19,
+    arc: 1.5,
+    knock: 95,
     width: 2,
     style: 'melee',
   },
   spear: {
     name: 'LANÇA ENVENENADA',
     rarity: 'rara',
-    damage: 15,
-    cooldown: 0.5,
-    swing: 0.24,
-    range: 50,
-    closeRange: 13,
-    arc: 0.75,
-    knock: 80,
+    damage: 22,
+    cooldown: 0.4,
+    swing: 0.2,
+    range: 52,
+    closeRange: 18,
+    arc: 0.8,
+    knock: 85,
     width: 1,
     maxTargets: 2,
     style: 'melee',
@@ -78,13 +78,13 @@ export const TOOLS = {
   gun: {
     name: 'ARMA',
     rarity: 'rara',
-    damage: 30,
-    cooldown: 0.9,
-    swing: 0.11,
-    range: 130,
-    closeRange: 8,
-    arc: 0.2,
-    knock: 45,
+    damage: 34,
+    cooldown: 0.72,
+    swing: 0.1,
+    range: 135,
+    closeRange: 12,
+    arc: 0.22,
+    knock: 50,
     width: 1,
     maxTargets: 1,
     style: 'shot',
@@ -94,13 +94,13 @@ export const TOOLS = {
   flamethrower: {
     name: 'LANÇA-CHAMAS',
     rarity: 'mitica',
-    damage: 20,
-    cooldown: 0.24,
-    swing: 0.18,
-    range: 54,
-    closeRange: 14,
-    arc: 1.2,
-    knock: 12,
+    damage: 26,
+    cooldown: 0.18,
+    swing: 0.15,
+    range: 56,
+    closeRange: 16,
+    arc: 1.25,
+    knock: 14,
     width: 3,
     style: 'flame',
     unlockDay: 12,
@@ -113,24 +113,24 @@ export const TOOLS = {
   katana: {
     name: 'KATANA',
     rarity: 'rara',
-    damage: 18,
-    cooldown: 0.3,
-    swing: 0.16,
-    range: 40,
-    closeRange: 16,
-    arc: 1.7,
-    knock: 95,
+    damage: 28,
+    cooldown: 0.24,
+    swing: 0.14,
+    range: 42,
+    closeRange: 20,
+    arc: 1.75,
+    knock: 105,
     width: 2,
     style: 'melee',
   },
   minigun: {
     name: 'MINIGUN',
     rarity: 'mitica',
-    damage: 16,
-    cooldown: 0.09,
-    swing: 0.06,
-    range: 105,
-    closeRange: 6,
+    damage: 20,
+    cooldown: 0.07,
+    swing: 0.05,
+    range: 110,
+    closeRange: 10,
     arc: 0.18,
     knock: 14,
     width: 1,
@@ -142,32 +142,32 @@ export const TOOLS = {
   plasma: {
     name: 'CANHÃO DE PLASMA',
     rarity: 'mitica',
-    damage: 60,
-    cooldown: 1.05,
-    swing: 0.12,
-    range: 145,
-    closeRange: 8,
-    arc: 0.22,
-    knock: 70,
+    damage: 85,
+    cooldown: 0.85,
+    swing: 0.1,
+    range: 150,
+    closeRange: 12,
+    arc: 0.24,
+    knock: 75,
     width: 1,
     maxTargets: 1,
     style: 'shot',
-    drawback: 'RECARGA LENTA: 1,05 s',
+    drawback: 'RECARGA LENTA',
     chestOnly: true,
   },
 
-  // Ferramentas que só aparecem nas ofertas/baú.
+  // Ferramentas que só saem do baú dourado.
   // Todas são mais fortes, mas carregam uma desvantagem.
   chainsaw: {
     name: 'MOTOSSERRA',
     rarity: 'rara',
-    damage: 26,
-    cooldown: 0.34,
-    swing: 0.2,
-    range: 44,
-    closeRange: 15,
-    arc: 1.1,
-    knock: 45,
+    damage: 34,
+    cooldown: 0.24,
+    swing: 0.16,
+    range: 46,
+    closeRange: 18,
+    arc: 1.15,
+    knock: 50,
     width: 2,
     style: 'melee',
     moveMult: 0.82,
@@ -177,29 +177,29 @@ export const TOOLS = {
   crossbow: {
     name: 'BESTA',
     rarity: 'rara',
-    damage: 34,
-    cooldown: 1.15,
-    swing: 0.12,
-    range: 120,
-    closeRange: 8,
-    arc: 0.22,
-    knock: 60,
+    damage: 46,
+    cooldown: 0.85,
+    swing: 0.11,
+    range: 125,
+    closeRange: 12,
+    arc: 0.24,
+    knock: 65,
     width: 1,
     maxTargets: 1,
     style: 'shot',
-    drawback: 'RECARGA LENTA: 1,15 s',
+    drawback: 'RECARGA LENTA',
     offerOnly: true,
   },
   scythe: {
     name: 'FOICE',
     rarity: 'mitica',
-    damage: 30,
-    cooldown: 0.8,
-    swing: 0.34,
-    range: 48,
-    closeRange: 18,
-    arc: 2.6,
-    knock: 120,
+    damage: 44,
+    cooldown: 0.6,
+    swing: 0.28,
+    range: 50,
+    closeRange: 20,
+    arc: 2.65,
+    knock: 130,
     width: 3,
     maxTargets: 3,
     style: 'melee',
@@ -210,29 +210,29 @@ export const TOOLS = {
   smg: {
     name: 'SUBMETRALHADORA',
     rarity: 'rara',
-    damage: 12,
-    cooldown: 0.14,
-    swing: 0.08,
-    range: 92,
-    closeRange: 6,
-    arc: 0.16,
-    knock: 20,
+    damage: 16,
+    cooldown: 0.11,
+    swing: 0.07,
+    range: 95,
+    closeRange: 10,
+    arc: 0.18,
+    knock: 22,
     width: 1,
     maxTargets: 1,
     style: 'shot',
-    drawback: 'TIRO FRACO: 12 DE DANO',
+    drawback: 'TIRO FRACO POR DISPARO',
     offerOnly: true,
   },
   hammer: {
     name: 'MARRA',
     rarity: 'mitica',
-    damage: 44,
-    cooldown: 1.2,
-    swing: 0.4,
-    range: 42,
-    closeRange: 20,
-    arc: 2,
-    knock: 220,
+    damage: 62,
+    cooldown: 0.9,
+    swing: 0.34,
+    range: 44,
+    closeRange: 22,
+    arc: 2.05,
+    knock: 230,
     width: 3,
     moveMult: 0.8,
     drawback: 'MUITO PESADA: -20% VELOCIDADE',
@@ -339,8 +339,8 @@ const BASE_DAMAGE_PER_NIGHT = 4;
 const RESISTANCE_PER_NIGHT = 1;
 const BOSS_EVERY = 10;
 
-// Cada dia tem 30 segundos de luz: tempo de se curar e pegar o baú.
-const DAY_SECONDS = 30;
+// Cada dia tem 10 segundos de luz: tempo de se curar e pegar o baú.
+const DAY_SECONDS = 10;
 const CHEST_EVERY = 2;
 
 const BASE_ZOMBIE_HP = 30;
@@ -608,6 +608,7 @@ export class Game {
     this.bossNight = false;
     this.shocks = [];
     this.chest = null;
+    this.pendingChest = null;
     this.phase = 'day';
     this.dayTimer = DAY_SECONDS;
 
@@ -688,7 +689,7 @@ export class Game {
     this.tipUntil = this.time + seconds;
   }
 
-  // Dia: 30 segundos de luz, vida regenerando e o baú dourado no chão.
+  // Dia: 10 segundos de luz, vida regenerando e o baú dourado no chão.
   beginDay() {
     this.phase = 'day';
     this.dayTimer = DAY_SECONDS;
@@ -701,6 +702,7 @@ export class Game {
     this.total = 2 * this.day - 1 + (this.bossNight ? 1 : 0);
     this.zombies = [];
     this.chest = null;
+    this.pendingChest = null;
 
     // A cada 2 dias (dia 3, 5, 7...) nasce um baú dourado no chão.
     if (this.day >= 3 && this.day % CHEST_EVERY === 1) {
@@ -738,26 +740,35 @@ export class Game {
     }
   }
 
-  // Recompensa vem do servidor (que decide a ferramenta); se falhar, o cliente sorteia.
+  // Recompensa em moedas: o servidor já creditou na conta, então só avisamos.
   applyChestReward(reward = {}) {
-    const toolId = reward.toolId;
-    if (toolId && TOOLS[toolId]) {
-      this.equipTool(toolId);
-      this.setTip(
-        `BAÚ: ${TOOLS[toolId].name} (${RARITIES[TOOLS[toolId].rarity].label})`,
-        4.5
-      );
-      return;
-    }
-
     if (reward.coins > 0) {
-      this.coinsEarned += reward.coins;
-      this.cb.onCoins(reward.coins);
-      this.setTip(`BAÚ VAZIO  -  +$${reward.coins}`, 3.5);
+      this.setTip(`BAÚ VAZIO  -  +$${reward.coins} NA CONTA`, 3.5);
       return;
     }
 
     this.setTip('BAÚ VAZIO.', 2.4);
+  }
+
+  // Troca a ferramenta atual pela que veio do baú.
+  equipChestTool() {
+    if (!this.pendingChest) return null;
+
+    const toolId = this.pendingChest.toolId;
+    this.pendingChest = null;
+    this.equipTool(toolId);
+    this.setTip(`TROCOU PARA ${TOOLS[toolId].name}`, 4);
+    return toolId;
+  }
+
+  // Mantém a ferramenta atual e guarda a nova no inventário.
+  keepChestTool() {
+    if (!this.pendingChest) return null;
+
+    const toolId = this.pendingChest.toolId;
+    this.pendingChest = null;
+    this.setTip(`MANTEVE ${this.tool.name}  -  ${TOOLS[toolId].name} FICOU NO INVENTÁRIO`, 5);
+    return toolId;
   }
 
   randomChestTool() {
@@ -766,6 +777,7 @@ export class Game {
   }
 
   // Pisa no baú: o servidor decide a recompensa; sem resposta, sorteia local.
+  // A ferramenta só é equipada quando o jogador escolhe trocar.
   openGroundChest() {
     if (!this.chest || this.chest.taken) return;
 
@@ -777,10 +789,30 @@ export class Game {
 
     const finish = (reward) => {
       if (!this.active) return;
-      if (reward && (reward.toolId || reward.coins > 0)) {
-        this.applyChestReward(reward);
-      } else {
-        this.applyChestReward({ toolId: this.randomChestTool() });
+
+      const resolved =
+        reward && (reward.toolId || reward.coins > 0)
+          ? reward
+          : { toolId: this.randomChestTool(), coins: 0 };
+
+      const toolId = resolved.toolId && TOOLS[resolved.toolId] ? resolved.toolId : null;
+      if (!toolId) {
+        this.applyChestReward(resolved);
+        return;
+      }
+
+      this.pendingChest = { toolId, currentToolId: this.toolId };
+      this.setTip(
+        `BAÚ: ${TOOLS[toolId].name}  -  ESCOLHA TROCAR OU CONTINUAR`,
+        8
+      );
+
+      if (this.cb.onChestReward) {
+        this.cb.onChestReward({
+          toolId,
+          currentToolId: this.toolId,
+          coins: resolved.coins || 0,
+        });
       }
     };
 
@@ -843,6 +875,9 @@ export class Game {
     const secondsToKill = 5 + this.day * 0.6;
     const hp = Math.round(Math.max(90, Math.min(20000, dps * secondsToKill)));
     const damage = Math.max(8, Math.round(this.damage * 0.4 + this.day));
+    // Resistência cresce junto com o dano do jogador: o chefe absorve parte
+    // de cada golpe, então armas mais fortes não o derretem instantaneamente.
+    const resist = Math.max(2, Math.round(this.damage * 0.35));
 
     this.boss = {
       x,
@@ -851,6 +886,7 @@ export class Game {
       hp,
       maxHp: hp,
       damage,
+      resist,
       speed: 11 + Math.min(11, this.day * 0.35),
       radius: 9,
       scale: 2,
@@ -960,7 +996,10 @@ export class Game {
   }
 
   damageZombie(zombie, amount, aim) {
-    zombie.hp -= amount;
+    // Chefes absorvem parte do golpe (resistência proporcional à sua força),
+    // mas nunca ficam imunes: sempre entra pelo menos 1 de dano.
+    const dealt = Math.max(1, Math.round(amount - (zombie.resist || 0)));
+    zombie.hp -= dealt;
     zombie.flash = 0.09;
 
     const knock = zombie.boss ? this.tool.knock * 0.2 : this.tool.knock;

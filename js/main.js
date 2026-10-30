@@ -14,6 +14,7 @@ import {
   buyPotion,
   buyCharacter,
   selectCharacter,
+  selectTool,
   toolBonus,
 } from './save.js';
 import { MenuScene } from './scene.js';
@@ -38,6 +39,7 @@ const menuCoinsValue = document.getElementById('menu-coins-value');
 const menuTopLeft = document.getElementById('menu-top-left');
 const menuPlayer = document.getElementById('menu-player');
 const menuPlayerName = document.getElementById('menu-player-name');
+const menuPlayerLevel = document.getElementById('menu-player-level');
 const menuPlayerPerk = document.getElementById('menu-player-perk');
 const btnPlay = document.getElementById('btn-play');
 const btnShop = document.getElementById('btn-shop');
@@ -82,6 +84,10 @@ const inventoryCoins = document.getElementById('inventory-coins');
 const inventoryItems = document.getElementById('inventory-items');
 const inventoryAchievements = document.getElementById('inventory-achievements');
 const inventoryBack = document.getElementById('inventory-back');
+const inventoryRank = document.getElementById('inventory-rank');
+const inventoryLevelValue = document.getElementById('inventory-level-value');
+const inventoryLevelFill = document.getElementById('inventory-level-fill');
+const inventoryXp = document.getElementById('inventory-xp');
 
 const tutorial = document.getElementById('tutorial');
 const tutorialStep = document.getElementById('tutorial-step');
@@ -91,6 +97,12 @@ const tutorialText = document.getElementById('tutorial-text');
 const tutorialDots = document.getElementById('tutorial-dots');
 const tutorialNext = document.getElementById('tutorial-next');
 const tutorialSkip = document.getElementById('tutorial-skip');
+
+const chestReward = document.getElementById('chest-reward');
+const chestRewardCard = document.getElementById('chest-reward-card');
+const chestCompare = document.getElementById('chest-compare');
+const chestEquip = document.getElementById('chest-equip');
+const chestKeep = document.getElementById('chest-keep');
 
 const gameover = document.getElementById('gameover');
 const gameoverInfo = document.getElementById('gameover-info');
@@ -257,10 +269,14 @@ const game = new Game(canvas, ctx, {
     if (day > runMaxDay) runMaxDay = day;
   },
   onNightEnd() {
+    runNights += 1;
     queueSync();
   },
   onChestOpen(day) {
     return openChestSafely(day);
+  },
+  onChestReward(reward) {
+    openChestReward(reward);
   },
   onHud(info) {
     updateHud(info);
@@ -279,6 +295,7 @@ const game = new Game(canvas, ctx, {
 
 let runCoins = 0;
 let runKills = 0;
+let runNights = 0;
 let runMaxDay = 1;
 let runFinal = false;
 let syncTimer = null;
@@ -300,32 +317,50 @@ async function sendSync() {
     return;
   }
 
-  if (runCoins === 0 && runKills === 0 && !runFinal) return;
+  if (runCoins === 0 && runKills === 0 && runNights === 0 && !runFinal) return;
 
   const payload = {
     day: runMaxDay,
     coins: runCoins,
     kills: runKills,
+    nights: runNights,
     runs: runFinal ? 1 : 0,
   };
 
   runCoins = 0;
   runKills = 0;
+  runNights = 0;
   runFinal = false;
   syncBusy = true;
 
   try {
     const data = await reportRun(payload);
     updateCoins();
+    updatePlayerBadge();
 
     if (Array.isArray(data.newAchievements) && data.newAchievements.length > 0) {
       data.newAchievements.forEach((achievement, index) => {
         setTimeout(() => showToast(`CONQUISTA: ${achievement.title}`), index * 700);
       });
     }
+
+    if (data.progress && data.progress.levelUp) {
+      const level = data.progress.level;
+      const rank = data.progress.rank;
+      showToast(
+        data.progress.rankUp
+          ? `NÍVEL ${level} · NOVO TÍTULO: ${rank}`
+          : `SUBIU PARA O NÍVEL ${level} · ${rank}`
+      );
+    }
+
+    if (state === 'inventory') {
+      renderInventory();
+    }
   } catch (error) {
     runCoins += payload.coins;
     runKills += payload.kills;
+    runNights += payload.nights;
     console.warn('Falha ao salvar progresso:', error.message);
     clearTimeout(syncTimer);
     syncTimer = setTimeout(sendSync, 3000);
@@ -371,6 +406,7 @@ function updatePlayerBadge() {
   const character = CHARACTERS[save.character] || CHARACTERS.survivor;
 
   menuPlayerName.textContent = save.name || 'JOGADOR';
+  menuPlayerLevel.textContent = `NÍVEL ${save.level || 1} · ${save.rank || 'SOBREVIVENTE'}`;
   menuPlayerPerk.textContent = `${character.name} · ${character.perk}`;
 }
 
@@ -532,8 +568,8 @@ function damageOf(toolId) {
 function renderToolSelect() {
   const character = CHARACTERS[save.character] || CHARACTERS.survivor;
   toolMeta.innerHTML =
-    `JOGADOR: <strong>${save.name}</strong> · ${character.name} · MELHOR DIA <strong>${save.bestDay}</strong>` +
-    ` · +4 DANO POR NOITE · +5 POR POÇÃO`;
+    `JOGADOR: <strong>${save.name}</strong> · NÍVEL <strong>${save.level || 1}</strong> ${save.rank || 'SOBREVIVENTE'}` +
+    ` · MELHOR DIA <strong>${save.bestDay}</strong> · +4 DANO POR NOITE · +5 POR POÇÃO`;
 
   toolGrid.innerHTML = TOOL_ORDER.map((id) => {
     const tool = TOOLS[id];
@@ -544,7 +580,9 @@ function renderToolSelect() {
     const damage = damageOf(id);
 
     let status;
-    if (owned) {
+    if (id === save.tool) {
+      status = 'PREFERIDA';
+    } else if (owned) {
       status = 'SUA FERRAMENTA';
     } else if (tool.unlockDay) {
       const chance = getToolChance(id, save.bestDay);
@@ -563,7 +601,7 @@ function renderToolSelect() {
 
     return `
       <button
-        class="tool tool--${tool.rarity} ${appeared ? '' : 'is-locked'}"
+        class="tool tool--${tool.rarity} ${appeared ? '' : 'is-locked'} ${id === save.tool ? 'is-preferred' : ''}"
         type="button"
         data-tool="${id}"
         ${appeared ? '' : 'disabled'}
@@ -594,9 +632,9 @@ const TUTORIAL_STEPS = [
     text: 'A MIRA SEGUE O MOUSE. SEGURE O BOTÃO ESQUERDO PARA ATACAR SEM PARAR. CADA FERRAMENTA TEM ALCANCE, DANO E RECARGA PRÓPRIOS.',
   },
   {
-    title: 'DIA DE 30 SEGUNDOS',
-    keys: ['30s', '+ VIDA'],
-    text: 'CADA DIA COMEÇA COM 30 SEGUNDOS DE LUZ: NENHUM ZUMBI NASCE E SUA VIDA SE REGENERA SOZINHA. APROVEITE PARA SE POSICIONAR.',
+    title: 'DIA DE 10 SEGUNDOS',
+    keys: ['10s', '+ VIDA'],
+    text: 'CADA DIA COMEÇA COM 10 SEGUNDOS DE LUZ: NENHUM ZUMBI NASCE E SUA VIDA SE REGENERA SOZINHA. CORRA PARA SE POSICIONAR.',
   },
   {
     title: 'A NOITE',
@@ -606,12 +644,12 @@ const TUTORIAL_STEPS = [
   {
     title: 'BAÚ DOURADO',
     keys: ['DIAS 3, 5, 7...', 'PISE NELE'],
-    text: 'A CADA 2 DIAS NASCE UM BAÚ DOURADO NO CHÃO. PISE NELE DURANTE O DIA PARA GANHAR UMA FERRAMENTA RARA OU MÍTICA.',
+    text: 'A CADA 2 DIAS NASCE UM BAÚ DOURADO NO CHÃO. PISE NELE DURANTE O DIA: O JOGO MOSTRA O QUE VOCÊ GANHOU E DEIXA VOCÊ TROCAR DE FERRAMENTA OU CONTINUAR COM A MESMA.',
   },
   {
     title: 'PROGRESSO',
-    keys: ['$', 'LOJA', 'INVENTÁRIO'],
-    text: 'AS MOEDAS DA PARTIDA FICAM SALVAS NA CONTA. NA LOJA COMPRE FERRAMENTAS E SKINS; NO INVENTÁRIO VEJA TUDO E AS CONQUISTAS.',
+    keys: ['XP', 'NÍVEL', 'INVENTÁRIO'],
+    text: 'VOCÊ GANHA +5 XP POR NOITE E +1 POR ZUMBI. A CADA NÍVEL O XP EXIGIDO AUMENTA. A CADA 10 NÍVEIS SOBE DE TÍTULO. NO INVENTÁRIO ESCOLHA SKINS E FERRAMENTAS.',
   },
 ];
 
@@ -726,6 +764,19 @@ function describeItem(item) {
 function renderInventory() {
   inventoryCoins.textContent = save.coins;
 
+  const level = save.level || 1;
+  const rank = save.rank || 'SOBREVIVENTE';
+  const xpInLevel = Math.max(0, save.xpInLevel || 0);
+  const xpForNext = Math.max(1, save.xpForNext || 15);
+  const xpRatio = Math.max(0, Math.min(1, xpInLevel / xpForNext));
+
+  inventoryRank.textContent = rank;
+  inventoryLevelValue.textContent = `NÍVEL ${level}`;
+  inventoryLevelFill.style.width = `${xpRatio * 100}%`;
+  inventoryXp.textContent =
+    `${xpInLevel} / ${xpForNext} XP · FALTAM ${Math.max(0, xpForNext - xpInLevel)}` +
+    ` · TOTAL ${save.xp || 0}`;
+
   if (!save.inventory || save.inventory.length === 0) {
     inventoryItems.innerHTML = '<p class="inventory-empty">SEU INVENTÁRIO ESTÁ VAZIO.</p>';
   } else {
@@ -734,6 +785,19 @@ function renderInventory() {
         const info = describeItem(item);
         const qty = item.quantity > 1 ? ` <span class="item-qty">x${item.quantity}</span>` : '';
 
+        let action = '';
+        if (item.kind === 'tool') {
+          action =
+            item.itemId === save.tool
+              ? '<button class="item-action is-current" type="button" disabled>PREFERIDA</button>'
+              : `<button class="item-action" type="button" data-equip-tool="${item.itemId}">USAR</button>`;
+        } else if (item.kind === 'character') {
+          action =
+            item.itemId === save.character
+              ? '<button class="item-action is-current" type="button" disabled>EM USO</button>'
+              : `<button class="item-action" type="button" data-equip-character="${item.itemId}">EQUIPAR</button>`;
+        }
+
         return `
           <div class="inventory-item ${info.rarity ? `inventory-item--${info.rarity}` : ''}">
             ${info.icon}
@@ -741,7 +805,10 @@ function renderInventory() {
               <h4>${info.name}${qty}</h4>
               <p>${info.meta}</p>
             </div>
-            <span class="inventory-item-kind">${ITEM_LABELS[item.kind] || item.kind.toUpperCase()}</span>
+            <div class="inventory-item-side">
+              <span class="inventory-item-kind">${ITEM_LABELS[item.kind] || item.kind.toUpperCase()}</span>
+              ${action}
+            </div>
           </div>
         `;
       })
@@ -809,6 +876,64 @@ async function openChestSafely(day) {
   }
 }
 
+// Mostra o que veio no baú e deixa o jogador escolher trocar ou continuar.
+function openChestReward(reward) {
+  if (!reward || !TOOLS[reward.toolId]) return;
+
+  state = 'chest';
+
+  const tool = TOOLS[reward.toolId];
+  const current = TOOLS[reward.currentToolId] || null;
+  const character = CHARACTERS[save.character] || CHARACTERS.survivor;
+  const bonus = toolBonus(save.potions);
+  const newDamage = Math.round(tool.damage * character.damage) + bonus;
+  const currentDamage = current ? Math.round(current.damage * character.damage) + bonus : 0;
+
+  chestRewardCard.innerHTML = `
+    <span class="tool-rarity tool-rarity--${tool.rarity}">${RARITIES[tool.rarity].label}</span>
+    ${TOOL_ICONS[reward.toolId] || ''}
+    <h3 class="chest-tool-name">${tool.name}</h3>
+    <p class="chest-tool-stats">
+      DANO ${newDamage} · RECARGA ${tool.cooldown.toFixed(2)}s
+      ${tool.drawback ? ` · ${tool.drawback}` : ''}
+    </p>
+  `;
+
+  chestCompare.textContent = current
+    ? `VOCÊ ESTÁ COM ${current.name} (DANO ${currentDamage}). TROCAR OU CONTINUAR COM A MESMA?`
+    : 'ESCOLHA TROCAR DE FERRAMENTA OU CONTINUAR COM A SUA.';
+
+  chestEquip.textContent = current ? `TROCAR POR ${tool.name}` : `USAR ${tool.name}`;
+  chestKeep.textContent = current ? `CONTINUAR COM ${current.name}` : 'CONTINUAR COM A MINHA';
+  chestReward.hidden = false;
+}
+
+// Fecha o modal do baú; se trocou, salva a ferramenta preferida na conta.
+async function finishChest(equip) {
+  if (state !== 'chest') return;
+
+  chestReward.hidden = true;
+  state = 'playing';
+
+  if (!equip) {
+    game.keepChestTool();
+    showToast(`VOCÊ MANTEVE ${game.tool.name}`);
+    return;
+  }
+
+  const toolId = game.equipChestTool();
+  if (!toolId) return;
+
+  showToast(`FERRAMENTA TROCADA: ${TOOLS[toolId].name}`);
+
+  try {
+    await selectTool(toolId);
+    updatePlayerBadge();
+  } catch (error) {
+    console.warn('Falha ao salvar a ferramenta preferida:', error.message);
+  }
+}
+
 let toastTimer = null;
 
 function showToast(text) {
@@ -841,6 +966,7 @@ function startRun(toolId) {
 
   runCoins = 0;
   runKills = 0;
+  runNights = 0;
   runMaxDay = 1;
   runFinal = false;
 
@@ -1071,6 +1197,32 @@ btnHelp.addEventListener('click', () => openTutorial('menu'));
 tutorialNext.addEventListener('click', nextTutorialStep);
 tutorialSkip.addEventListener('click', finishTutorial);
 
+chestEquip.addEventListener('click', () => finishChest(true));
+chestKeep.addEventListener('click', () => finishChest(false));
+
+inventoryItems.addEventListener('click', async (event) => {
+  const action = event.target.closest('button');
+  if (!action || action.disabled) return;
+
+  try {
+    if (action.dataset.equipTool) {
+      const toolId = action.dataset.equipTool;
+      await selectTool(toolId);
+      showToast(`FERRAMENTA PREFERIDA: ${TOOLS[toolId]?.name || toolId}`);
+      updatePlayerBadge();
+      renderInventory();
+    } else if (action.dataset.equipCharacter) {
+      const characterId = action.dataset.equipCharacter;
+      await selectCharacter(characterId);
+      showToast(`SKIN EQUIPADA: ${CHARACTERS[characterId]?.name || characterId}`);
+      updatePlayerBadge();
+      renderInventory();
+    }
+  } catch (error) {
+    showToast(`ERRO: ${error.message}`);
+  }
+});
+
 shopItems.addEventListener('click', (event) => {
   const action = event.target.closest('button');
   if (!action || action.disabled) return;
@@ -1132,6 +1284,14 @@ gameoverMenu.addEventListener('click', () => {
 });
 
 window.addEventListener('keydown', (event) => {
+  if (state === 'chest') {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finishChest(false);
+    }
+    return;
+  }
+
   if (state === 'tutorial') {
     const onButton = document.activeElement?.tagName === 'BUTTON';
 
@@ -1175,6 +1335,9 @@ function frame(now) {
     else scene.draw(time, delta);
   } else if (state === 'playing') {
     game.update(delta);
+    game.draw();
+  } else if (state === 'chest') {
+    // Jogo pausado enquanto o jogador decide o que fazer com o baú.
     game.draw();
   }
 
