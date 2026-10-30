@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#050505">
   <title>INFECTED</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -48,6 +49,7 @@
   <main id="menu" class="menu">
     <h1 class="title" data-text="INFECTED">INFECTED</h1>
     <p class="tagline">SOBREVIVA À NOITE</p>
+    <p id="menu-local-note" class="local-note local-note--menu" hidden>SALVO NESTE NAVEGADOR</p>
 
     <div class="buttons">
       <button id="btn-play" class="btn btn--play" type="button">JOGAR</button>
@@ -89,6 +91,9 @@
       </form>
 
       <p class="auth-hint">NOME: 3 A 16 LETRAS/NÚMEROS · SENHA: 8 A 64 CARACTERES COM PELO MENOS 1 NÚMERO</p>
+      <p id="auth-local-note" class="local-note" hidden>
+        MODO LOCAL: A CONTA E O PROGRESSO FICAM SALVOS SÓ NESTE NAVEGADOR.
+      </p>
     </div>
   </section>
 
@@ -223,6 +228,19 @@
       <button id="gameover-menu" class="btn btn--play btn--compact" type="button">VOLTAR AO MENU</button>
     </div>
   </section>
+
+  <!-- Controles de toque (só aparecem em telas sensíveis ao toque) -->
+  <div id="touch-controls" class="touch-controls" hidden>
+    <div id="stick-move" class="stick stick--move" data-stick="move">
+      <div class="stick-knob"></div>
+      <span class="stick-label">MOVER</span>
+    </div>
+
+    <div id="stick-aim" class="stick stick--aim" data-stick="aim">
+      <div class="stick-knob"></div>
+      <span class="stick-label">MIRAR</span>
+    </div>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>

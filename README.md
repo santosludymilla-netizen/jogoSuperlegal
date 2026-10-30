@@ -5,7 +5,15 @@ Estética dark e macabra com contraste entre **verde neon** e **rosa neon**.
 
 > Este README é o registro vivo do planejamento: toda ideia ou etapa nova é adicionada aqui.
 
-**Status atual:** login com banco de dados, menu, floresta, dias de **10 segundos** com cura, noites de combate, arsenal com raridades e armas mais fortes/rápidas, baú dourado a cada 2 dias com escolha de troca, chefe a cada 10 dias com resistência proporcional ao jogador, **XP/nível/títulos**, loja de ferramentas, poções e skins com ferramenta inicial, e inventário com equipar de skins/ferramentas e conquistas.
+**Status atual:** jogável **no computador e no celular**, com link público no **GitHub Pages** e progresso salvo **no navegador** (modo local), além do modo servidor com SQLite. Login com banco de dados, menu, floresta, dias de **10 segundos** com cura, noites de combate, arsenal com raridades e armas mais fortes/rápidas, baú dourado a cada 2 dias com escolha de troca, chefe a cada 10 dias com resistência proporcional ao jogador, **XP/nível/títulos**, loja de ferramentas, poções e skins com ferramenta inicial, e inventário com equipar de skins/ferramentas e conquistas.
+
+## Jogar agora
+
+**Link público:** [https://santosludymilla-netizen.github.io/jogoSuperlegal/](https://santosludymilla-netizen.github.io/jogoSuperlegal/)
+
+- Funciona em **computador e celular** (analógicos de toque).
+- No link público, a conta e o progresso ficam salvos **no navegador do jogador** (`localStorage`): não precisa de servidor e não sincroniza entre aparelhos.
+- Para jogar com progresso no servidor (SQLite, entre dispositivos), rode o projeto localmente (veja abaixo).
 
 ---
 
@@ -30,12 +38,24 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 
 ### Controles
 
+**Computador:**
+
 | Ação | Comando |
 |---|---|
 | Mover | `W` `A` `S` `D` ou setas |
 | Atacar | segurar o botão esquerdo do mouse (mira no cursor) |
 | Avançar tutorial | `PRÓXIMO` / `Enter` / `Espaço` |
 | Voltar / fechar | `ESC` nos menus |
+
+**Celular / tablet:**
+
+| Ação | Comando |
+|---|---|
+| Mover | arrastar o **analógico esquerdo** |
+| Mirar e atacar | arrastar o **analógico direito** na direção dos zumbis (ataca enquanto segura) |
+| Menus | tocar nos botões; o layout se adapta ao tamanho da tela |
+
+Os analógicos só aparecem em aparelhos com toque e durante a partida. A mira tem uma ajuda leve: se um zumbi estiver quase na direção apontada, o golpe encaixa nele.
 
 ---
 
@@ -46,7 +66,17 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 - **Senha:** 8 a 64 caracteres, apenas letras/números, com **pelo menos 1 número**.
 - A senha é guardada com **scrypt + salt**; o servidor nunca vê a senha em texto puro.
 - A sessão fica em um token `Bearer` válido por **30 dias**, guardado no `localStorage`.
-- **Todo o progresso fica no servidor** (SQLite): moedas, melhor dia, poções, ferramentas compradas, personagens, personagem equipado, inventário e conquistas. O servidor é a fonte da verdade dos valores.
+- **No modo servidor, todo o progresso fica no SQLite**: moedas, melhor dia, poções, ferramentas compradas, personagens, personagem equipado, inventário e conquistas. O servidor é a fonte da verdade dos valores.
+- **No link público (GitHub Pages) não existe servidor**: o jogo detecta isso sozinho e passa a salvar conta e progresso no `localStorage` do navegador, com as mesmas regras. Nesse modo, limpar os dados do site apaga a conta.
+
+### Modos de armazenamento
+
+| Situação | Modo | Onde fica o progresso |
+|---|---|---|
+| `npm start` (Express respondendo `/api/state`) | servidor | `data/jogo.db` (SQLite) |
+| GitHub Pages ou qualquer hospedagem estática | local | `localStorage` do navegador |
+
+A detecção é automática: o cliente consulta `/api/state` e verifica se a resposta é JSON. Se for JSON, usa a API; se for 404/HTML ou der erro de rede, usa o backend local (`public/js/local.js`).
 
 ---
 
@@ -56,6 +86,7 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 
 - Na **primeira partida**, antes do dia 1 começar, abre um **tutorial em 6 passos**: mover, mirar/atacar, os 10 s de dia com cura, a noite, o baú dourado com escolha de troca e o progresso (XP, níveis, loja/inventário).
 - O tutorial **pausa o jogo** (o relógio do dia não corre) e pode ser avançado com **PRÓXIMO**, `Enter`, `Espaço` ou pulado com **PULAR TUTORIAL** / `ESC`.
+- No celular, os dois primeiros passos ensinam os **analógicos de toque** em vez do teclado/mouse.
 - Depois de concluído (ou pulado) ele não abre sozinho de novo; o botão **COMO JOGAR** no menu abre o tutorial a qualquer momento.
 - Durante o dia 1, avisos curtos no HUD reforçam os controles e a meta da primeira noite.
 
@@ -201,7 +232,9 @@ Cada personagem tem também sua própria paleta de cores no sprite. O personagem
 
 ### Progresso salvo
 
-O banco SQLite (`data/jogo.db`) guarda: conta, moedas, melhor dia, mortes, partidas, **XP** (`xp`), **ferramenta preferida** (`tool_id`), ferramentas, personagens, poções, **inventário** (`player_items`), **conquistas** (`player_achievements`) e **baús abertos** (`player_chests`). Ao entrar em qualquer navegador, o progresso vem do servidor.
+No **modo servidor**, o banco SQLite (`data/jogo.db`) guarda: conta, moedas, melhor dia, mortes, partidas, **XP** (`xp`), **ferramenta preferida** (`tool_id`), ferramentas, personagens, poções, **inventário** (`player_items`), **conquistas** (`player_achievements`) e **baús abertos** (`player_chests`). Ao entrar em qualquer navegador, o progresso vem do servidor.
+
+No **modo local** (link público), o mesmo estado é gravado em duas chaves do `localStorage`: `infected.local.players` (contas, saldo, itens, conquistas e baús) e `infected.local.session` (quem está logado). As senhas são guardadas como hash SHA-256 com salt (quando o navegador permite `crypto.subtle`). O jogo mostra um aviso **SALVO NESTE NAVEGADOR** para deixar isso claro.
 
 ---
 
@@ -209,6 +242,7 @@ O banco SQLite (`data/jogo.db`) guarda: conta, moedas, melhor dia, mortes, parti
 
 - **Node.js + Express 5** — API e servidor de arquivos estáticos
 - **`node:sqlite`** — banco de dados local, sem dependência externa
+- **`localStorage`** — backend do modo estático (contas e progresso no navegador)
 - **HTML + CSS + JavaScript puro** — sem framework e sem etapa de build
 - **Canvas 2D** — cenário e partida em resolução interna baixa, escalada com `image-rendering: pixelated`
 - **DOM/CSS** — menus, HUD, loja, escolha de ferramenta, inventário e conquistas
@@ -230,10 +264,11 @@ infected/
     ├── index.html            # login, menu, HUD, inventário, loja, escolha, game over
     ├── css/style.css         # tema neon/macabro, HUD, loja, inventário e painéis
     ├── js/
-    │   ├── main.js           # loop principal, estados, login, loja, inventário e HUD
+    │   ├── main.js           # loop principal, estados, login, loja, inventário, HUD e analógicos
     │   ├── scene.js          # floresta animada do menu
-    │   ├── game.js           # partida: player, zumbis, chefe, dia/noite, baú e combate
-    │   └── save.js           # cliente da API e estado local do jogador
+    │   ├── game.js           # partida: player, zumbis, chefe, dia/noite, baú, combate e toque
+    │   ├── save.js           # detecção de modo + cliente da API / backend local
+    │   └── local.js          # contas e progresso no localStorage (GitHub Pages)
     └── assets/
         └── fonts/            # Press Start 2P (woff2)
 ```
@@ -257,7 +292,19 @@ infected/
 
 Todas as rotas, menos cadastro/login, exigem `Authorization: Bearer <token>`.
 
+No **modo local** essas mesmas rotas são atendidas em memória/`localStorage` por `public/js/local.js` (mesmos nomes, validações e mensagens), então o restante do cliente não precisa saber onde está rodando.
+
 Para depurar no console do navegador, abra com `?debug=1` para expor `window.__jogo` (jogo, save e loja).
+
+## Publicar no GitHub Pages
+
+O site é publicado a partir do conteúdo de `public/` no branch `gh-pages`:
+
+```bash
+git subtree push --prefix public origin gh-pages
+```
+
+Em **Settings → Pages**, a fonte é o branch `gh-pages` na raiz (`/`). Como o Pages é estático, o jogo cai automaticamente no modo local.
 
 ---
 
@@ -369,6 +416,17 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 - [x] Chefe a cada 10 noites com **resistência proporcional à força do jogador**
 - [x] Novas rotas `POST /api/tool/select` e XP em `POST /api/run/report`
 
+### Parte 9 — Link público e celular ✅
+
+- [x] **Modo local**: contas, XP, loja, baú e conquistas em `localStorage`
+- [x] Detecção automática entre servidor (JSON em `/api/state`) e modo estático
+- [x] Aviso de que o progresso está salvo no navegador
+- [x] **Controles de toque**: analógico esquerdo para andar e direito para mirar/atacar
+- [x] Auto-mira leve no analógico direito
+- [x] Layout responsivo (painéis, HUD, loja, inventário e tutorial) e área segura de notch
+- [x] Tutorial adaptado ao toque
+- [x] Publicação no **GitHub Pages** com `public/` no branch `gh-pages`
+
 ---
 
 ## Decisões técnicas
@@ -388,3 +446,7 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 - Inventário (`player_items`), conquistas (`player_achievements`) e baús (`player_chests`) são tabelas normalizadas; `player_tools`/`player_characters`/poções são espelhados para o inventário na migração.
 - As conquistas são recalculadas no servidor a cada relato de partida (`syncAchievements`), nunca no cliente.
 - O servidor nunca confia no cliente para saldo nem para a recompensa do baú: o relato de partida soma moedas com teto por envio, cada compra é validada e debitada em transação e a ferramenta do baú é sorteada no servidor.
+- **Detecção de modo:** `fetch('/api/state')` é a sonda. Resposta JSON = API Node; 404/HTML/erro = modo local. Assim o mesmo `index.html` funciona no Express e no Pages sem build.
+- **Backend local (`local.js`)** replica as regras do `db.js` (validações, tetos do relato, XP/níveis, conquistas, poções por faixa de 10 dias, baú por dia) e guarda tudo em `infected.local.players`. O `save.js` só troca o transporte.
+- **Controles:** os analógicos escrevem vetores normalizados em `game.moveStick`/`game.aimStick`; o `update` soma com o teclado e usa o vetor direito como mira + gatilho. Eles só existem em `pointer: coarse`, com `touch-action: none`.
+- **Responsivo:** media queries em 720 px e no modo paisagem baixo, `env(safe-area-inset-*)` para notch e painéis com rolagem interna.

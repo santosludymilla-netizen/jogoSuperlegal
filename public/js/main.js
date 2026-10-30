@@ -16,6 +16,8 @@ import {
   selectCharacter,
   selectTool,
   toolBonus,
+  detectMode,
+  isLocalMode,
 } from './save.js';
 import { MenuScene } from './scene.js';
 import {
@@ -108,6 +110,20 @@ const gameover = document.getElementById('gameover');
 const gameoverInfo = document.getElementById('gameover-info');
 const gameoverCoins = document.getElementById('gameover-coins');
 const gameoverMenu = document.getElementById('gameover-menu');
+
+const menuLocalNote = document.getElementById('menu-local-note');
+const authLocalNote = document.getElementById('auth-local-note');
+
+const touchControls = document.getElementById('touch-controls');
+const stickMoveEl = document.getElementById('stick-move');
+const stickAimEl = document.getElementById('stick-aim');
+
+// Telemóvel/tablet: mostra os analógicos e adapta os textos do tutorial.
+const IS_TOUCH =
+  (navigator.maxTouchPoints || 0) > 0 ||
+  (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+if (IS_TOUCH) document.documentElement.classList.add('touch');
 
 const damageFlash = document.getElementById('damage-flash');
 const blood = document.getElementById('blood');
@@ -290,6 +306,96 @@ const game = new Game(canvas, ctx, {
     showGameOver(info);
   },
 });
+
+// ---------- controles de toque ----------
+
+let touchShown = false;
+
+function resetSticks() {
+  for (const [element, target] of [
+    [stickMoveEl, game.moveStick],
+    [stickAimEl, game.aimStick],
+  ]) {
+    if (!element) continue;
+    element.classList.remove('is-active');
+    const knob = element.querySelector('.stick-knob');
+    if (knob) knob.style.transform = 'translate(0px, 0px)';
+    target.x = 0;
+    target.y = 0;
+    target.active = false;
+  }
+}
+
+function setTouchVisible(visible) {
+  // Em aparelho sem toque os analógicos nem chegam a aparecer.
+  const next = Boolean(visible) && IS_TOUCH;
+  if (touchShown === next) return;
+  touchShown = next;
+  if (!next) resetSticks();
+  touchControls.hidden = !next;
+}
+
+// Transforma arrastar o dedo em um vetor -1..1 (mesmo formato do teclado).
+function bindStick(element, target, deadzone) {
+  if (!element) return;
+  const knob = element.querySelector('.stick-knob');
+  let pointerId = null;
+
+  function move(event) {
+    const rect = element.getBoundingClientRect();
+    const radius = Math.max(20, rect.width * 0.34);
+    const dx = event.clientX - (rect.left + rect.width / 2);
+    const dy = event.clientY - (rect.top + rect.height / 2);
+    const length = Math.hypot(dx, dy) || 1;
+    const scale = length > radius ? radius / length : 1;
+    const px = dx * scale;
+    const py = dy * scale;
+
+    if (knob) knob.style.transform = `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px)`;
+
+    const x = px / radius;
+    const y = py / radius;
+    target.x = x;
+    target.y = y;
+    target.active = Math.hypot(x, y) >= deadzone;
+  }
+
+  function release() {
+    pointerId = null;
+    element.classList.remove('is-active');
+    if (knob) knob.style.transform = 'translate(0px, 0px)';
+    target.x = 0;
+    target.y = 0;
+    target.active = false;
+  }
+
+  element.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    pointerId = event.pointerId;
+    try {
+      element.setPointerCapture(event.pointerId);
+    } catch {
+      /* alguns navegadores não suportam captura */
+    }
+    element.classList.add('is-active');
+    move(event);
+  });
+
+  element.addEventListener('pointermove', (event) => {
+    if (pointerId !== event.pointerId) return;
+    event.preventDefault();
+    move(event);
+  });
+
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    element.addEventListener(type, (event) => {
+      if (pointerId === null || pointerId === event.pointerId) release();
+    });
+  }
+}
+
+bindStick(stickMoveEl, game.moveStick, 0.12);
+bindStick(stickAimEl, game.aimStick, 0.25);
 
 // ---------- sincronização com o servidor ----------
 
@@ -491,7 +597,8 @@ function showAuth(mode = 'login') {
 
   authError.textContent = '';
   syncAuthMode();
-  authName.focus();
+  // No celular o foco abriria o teclado na hora, cobrindo a tela.
+  if (!IS_TOUCH) authName.focus();
 }
 
 function syncAuthMode() {
@@ -656,13 +763,28 @@ const TUTORIAL_STEPS = [
 let tutorialIndex = 0;
 let tutorialReturn = 'menu';
 
+// No celular os dois primeiros passos falam dos analógicos, não do teclado.
+const TUTORIAL_TOUCH_STEPS = {
+  MOVER: {
+    keys: ['ANALÓGICO ESQUERDO'],
+    text: 'ARRASTE O ANALÓGICO DA ESQUERDA PARA ANDAR. O CENÁRIO É ABERTO: CIRCULE PARA NÃO FICAR CERCADO.',
+  },
+  'MIRAR E ATACAR': {
+    keys: ['ANALÓGICO DIREITO'],
+    text: 'ARRASTE O ANALÓGICO DA DIREITA NA DIREÇÃO DOS ZUMBIS PARA ATACAR SEM PARAR. SOLTE PARA PARAR DE ATACAR.',
+  },
+};
+
 function renderTutorial() {
   const step = TUTORIAL_STEPS[tutorialIndex];
+  const touchStep = IS_TOUCH ? TUTORIAL_TOUCH_STEPS[step.title] : null;
 
   tutorialStep.textContent = `${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
   tutorialTitle.textContent = step.title;
-  tutorialKeys.innerHTML = step.keys.map((key) => `<kbd>${key}</kbd>`).join('');
-  tutorialText.textContent = step.text;
+  tutorialKeys.innerHTML = (touchStep ? touchStep.keys : step.keys)
+    .map((key) => `<kbd>${key}</kbd>`)
+    .join('');
+  tutorialText.textContent = touchStep ? touchStep.text : step.text;
   tutorialDots.innerHTML = TUTORIAL_STEPS.map(
     (_, index) => `<span class="${index === tutorialIndex ? 'is-active' : ''}"></span>`
   ).join('');
@@ -1328,6 +1450,8 @@ function frame(now) {
   const delta = lastTime ? Math.min(0.05, time - lastTime) : 0.016;
   lastTime = time;
 
+  setTouchVisible(state === 'playing' && game.active);
+
   if (state === 'menu' || state === 'tool' || state === 'shop' || state === 'inventory' || state === 'auth') {
     scene.draw(time, delta);
   } else if (state === 'tutorial') {
@@ -1348,6 +1472,14 @@ async function boot() {
   resize();
   updateCoins();
   requestAnimationFrame(frame);
+
+  // Decide entre servidor (Node/SQLite) e modo local (localStorage).
+  await detectMode();
+
+  if (isLocalMode()) {
+    menuLocalNote.hidden = false;
+    authLocalNote.hidden = false;
+  }
 
   if (hasToken()) {
     try {
