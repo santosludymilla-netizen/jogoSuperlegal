@@ -512,6 +512,11 @@ export class Game {
 
     this.keys = new Set();
     this.mouse = { x: 0, y: 0, down: false };
+
+    // Analógicos de toque: main.js escreve aqui; o update lê junto do teclado.
+    this.moveStick = { x: 0, y: 0, active: false };
+    this.aimStick = { x: 0, y: 0, active: false };
+
     this.active = false;
 
     this.W = 0;
@@ -538,6 +543,8 @@ export class Game {
     window.addEventListener('blur', () => {
       this.keys.clear();
       this.mouse.down = false;
+      this.moveStick.active = false;
+      this.aimStick.active = false;
     });
 
     this.canvas.addEventListener('mousemove', (event) => this.updateMouse(event));
@@ -560,6 +567,36 @@ export class Game {
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * this.W;
     this.mouse.y = ((event.clientY - rect.top) / rect.height) * this.H;
+  }
+
+  // Puxa a mira para o zumbi mais próximo se ele estiver quase na direção apontada.
+  assistAim(angle) {
+    const player = this.player;
+    if (!player) return angle;
+
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const zombie of this.zombies) {
+      if (zombie.dead) continue;
+
+      const toX = zombie.x - player.x;
+      const toY = zombie.y - player.y;
+      const distance = Math.hypot(toX, toY);
+      if (distance > 140 || distance >= bestDistance) continue;
+
+      const zombieAngle = Math.atan2(toY, toX);
+      const diff = Math.abs(
+        Math.atan2(Math.sin(zombieAngle - angle), Math.cos(zombieAngle - angle))
+      );
+      if (diff > 0.5) continue;
+
+      best = zombie;
+      bestDistance = distance;
+    }
+
+    if (!best) return angle;
+    return Math.atan2(best.y - player.y, best.x - player.x);
   }
 
   resize(W, H) {
@@ -1275,6 +1312,11 @@ export class Game {
     if (this.keys.has('w') || this.keys.has('arrowup')) dy -= 1;
     if (this.keys.has('s') || this.keys.has('arrowdown')) dy += 1;
 
+    if (this.moveStick.active) {
+      dx += this.moveStick.x;
+      dy += this.moveStick.y;
+    }
+
     if (dx !== 0 || dy !== 0) {
       const length = Math.hypot(dx, dy);
       dx /= length;
@@ -1295,10 +1337,20 @@ export class Game {
     player.attackCd = Math.max(0, player.attackCd - dt);
     player.hurtCd = Math.max(0, player.hurtCd - dt);
 
-    const aim = Math.atan2(this.mouse.y - player.y, this.mouse.x - player.x);
+    const aimAmount = Math.hypot(this.aimStick.x, this.aimStick.y);
+    const stickAiming = this.aimStick.active && aimAmount > 0.2;
+    let aim;
+
+    if (stickAiming) {
+      // Auto-mira leve: encaixa no zumbi mais próximo dentro do cone do analógico.
+      aim = this.assistAim(Math.atan2(this.aimStick.y, this.aimStick.x));
+    } else {
+      aim = Math.atan2(this.mouse.y - player.y, this.mouse.x - player.x);
+    }
+
     this.aim = aim;
 
-    if (this.mouse.down) this.tryAttack(aim);
+    if (this.mouse.down || stickAiming) this.tryAttack(aim);
 
     for (const swing of this.swings) swing.t += dt;
     this.swings = this.swings.filter((swing) => swing.t < swing.dur);

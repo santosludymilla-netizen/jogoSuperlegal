@@ -1,5 +1,33 @@
+import { localRequest, localHasSession } from './local.js';
+
 const TOKEN_KEY = 'infected.token';
 const LEGACY_TOKEN_KEY = 'jogoSuperlegal.token';
+
+// 'server' = API Node/SQLite. 'local' = contas e progresso no localStorage
+// (usado quando o jogo roda estático, como no GitHub Pages).
+let mode = 'unknown';
+
+export function isLocalMode() {
+  return mode === 'local';
+}
+
+// Descobre o modo olhando a resposta de /api/state: JSON = servidor.
+export async function detectMode() {
+  if (mode !== 'unknown') return mode;
+
+  try {
+    const response = await fetch('/api/state', {
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const type = response.headers.get('content-type') || '';
+    mode = type.includes('json') ? 'server' : 'local';
+  } catch {
+    mode = 'local';
+  }
+
+  return mode;
+}
 
 // Estado do jogador logado. O objeto é mutado no lugar para que as referências
 // espalhadas pelo jogo continuem válidas após cada resposta do servidor.
@@ -58,11 +86,13 @@ export function getToken() {
 }
 
 export function hasToken() {
+  if (mode === 'local') return localHasSession();
   return Boolean(getToken());
 }
 
 export function setToken(value) {
   token = value;
+  if (mode === 'local') return;
   try {
     localStorage.setItem(TOKEN_KEY, value);
   } catch {
@@ -80,6 +110,10 @@ export function clearToken() {
 }
 
 async function request(path, { method = 'GET', body, auth = true } = {}) {
+  if (mode === 'local') {
+    return localRequest(path, { method, body });
+  }
+
   const headers = { 'content-type': 'application/json' };
   const currentToken = getToken();
   if (auth && currentToken) headers.authorization = `Bearer ${currentToken}`;
