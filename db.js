@@ -219,6 +219,8 @@ const store = {
   createSession(playerId) {
     const token = crypto.randomBytes(32).toString('hex');
     const stamp = now();
+    // Limpa sessões vencidas antes de criar outra, para a tabela não crescer sem limite.
+    db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(stamp);
     db.prepare(
       'INSERT INTO sessions (token_hash, player_id, created_at, expires_at) VALUES (?, ?, ?, ?)'
     ).run(hashToken(token), playerId, stamp, stamp + SESSION_DAYS * 24 * 60 * 60 * 1000);

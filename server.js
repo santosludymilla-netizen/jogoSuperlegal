@@ -16,17 +16,29 @@ const attempts = new Map();
 const ATTEMPT_WINDOW = 5 * 60 * 1000;
 const ATTEMPT_LIMIT = 25;
 
+// Descarta janelas vencidas para o mapa não crescer para sempre.
+function pruneAttempts(stamp) {
+  for (const [ip, entry] of attempts) {
+    if (stamp > entry.reset) attempts.delete(ip);
+  }
+}
+
 function tooManyAttempts(ip) {
   const stamp = Date.now();
+  pruneAttempts(stamp);
   const entry = attempts.get(ip);
+  return Boolean(entry) && entry.count >= ATTEMPT_LIMIT;
+}
 
+// Só as falhas contam: entrar com sucesso não consome tentativa.
+function noteFailure(ip) {
+  const stamp = Date.now();
+  const entry = attempts.get(ip);
   if (!entry || stamp > entry.reset) {
     attempts.set(ip, { count: 1, reset: stamp + ATTEMPT_WINDOW });
-    return false;
+    return;
   }
-
   entry.count += 1;
-  return entry.count > ATTEMPT_LIMIT;
 }
 
 // ---------- helpers ----------
@@ -67,11 +79,18 @@ app.post('/api/auth/register', (request, response) => {
 
   const { name, password } = request.body || {};
   const nameError = store.validateName(name);
-  if (nameError) return fail(response, 400, nameError);
+  if (nameError) {
+    noteFailure(request.ip);
+    return fail(response, 400, nameError);
+  }
   const passwordError = store.validatePassword(password);
-  if (passwordError) return fail(response, 400, passwordError);
+  if (passwordError) {
+    noteFailure(request.ip);
+    return fail(response, 400, passwordError);
+  }
 
   if (store.findByName(name)) {
+    noteFailure(request.ip);
     return fail(response, 409, 'ESSE NOME JÁ EXISTE. ESCOLHA OUTRO.');
   }
 
@@ -80,6 +99,7 @@ app.post('/api/auth/register', (request, response) => {
     player = store.createPlayer(name, password);
   } catch (error) {
     if (String(error.message).includes('UNIQUE')) {
+      noteFailure(request.ip);
       return fail(response, 409, 'ESSE NOME JÁ EXISTE. ESCOLHA OUTRO.');
     }
     console.error('erro ao criar jogador:', error);
@@ -105,7 +125,10 @@ app.post('/api/auth/login', (request, response) => {
   }
 
   const player = store.authenticate(name, password);
-  if (!player) return fail(response, 401, 'NOME OU SENHA INCORRETOS.');
+  if (!player) {
+    noteFailure(request.ip);
+    return fail(response, 401, 'NOME OU SENHA INCORRETOS.');
+  }
 
   const token = store.createSession(player.id);
   response.json({ token, player, shop: store.shopCatalog(player.id) });
@@ -178,8 +201,17 @@ app.use((request, response) => {
 });
 
 app.use((error, request, response, next) => {
-  console.error('erro no servidor:', error);
   if (response.headersSent) return next(error);
+
+  // Corpo malformado ou grande demais é culpa do cliente, não do servidor.
+  if (error.type === 'entity.parse.failed') {
+    return fail(response, 400, 'DADOS INVÁLIDOS NA REQUISIÇÃO.');
+  }
+  if (error.type === 'entity.too.large') {
+    return fail(response, 413, 'REQUISIÇÃO MUITO GRANDE.');
+  }
+
+  console.error('erro no servidor:', error);
   response.status(500).json({ error: 'ERRO INTERNO DO SERVIDOR.' });
 });
 
