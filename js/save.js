@@ -1,4 +1,5 @@
-const TOKEN_KEY = 'jogoSuperlegal.token';
+const TOKEN_KEY = 'infected.token';
+const LEGACY_TOKEN_KEY = 'jogoSuperlegal.token';
 
 // Estado do jogador logado. O objeto é mutado no lugar para que as referências
 // espalhadas pelo jogo continuem válidas após cada resposta do servidor.
@@ -13,6 +14,8 @@ export const save = {
   tools: ['knife'],
   characters: ['survivor'],
   character: 'survivor',
+  inventory: [],
+  achievements: [],
 };
 
 export const shop = {
@@ -25,7 +28,18 @@ let token = null;
 
 function readToken() {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    const current = localStorage.getItem(TOKEN_KEY);
+    if (current) return current;
+
+    // Quem já jogava antes do jogo virar INFECTED mantém a sessão.
+    const legacy = localStorage.getItem(LEGACY_TOKEN_KEY);
+    if (legacy) {
+      localStorage.setItem(TOKEN_KEY, legacy);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+      return legacy;
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -107,6 +121,9 @@ export function applyState(data) {
     });
   }
 
+  if (Array.isArray(data.inventory)) save.inventory = data.inventory;
+  if (Array.isArray(data.achievements)) save.achievements = data.achievements;
+
   if (data.shop) {
     Object.assign(shop, {
       potionPrice: data.shop.potionPrice,
@@ -156,6 +173,8 @@ export async function logout() {
     tools: ['knife'],
     characters: ['survivor'],
     character: 'survivor',
+    inventory: [],
+    achievements: [],
   });
 }
 
@@ -171,6 +190,19 @@ export async function reportRun({ day, coins, kills, runs = 0 }) {
     body: { day, coins, kills, runs },
   });
   applyState(data);
+  return data;
+}
+
+export async function openChest(day) {
+  const data = await request('/api/chest/open', { method: 'POST', body: { day } });
+  applyState(data);
+  return data;
+}
+
+export async function fetchInventory() {
+  const data = await request('/api/inventory');
+  if (Array.isArray(data.inventory)) save.inventory = data.inventory;
+  if (Array.isArray(data.achievements)) save.achievements = data.achievements;
   return data;
 }
 
