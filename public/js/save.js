@@ -11,6 +11,12 @@ export const save = {
   potions: 0,
   totalKills: 0,
   runs: 0,
+  xp: 0,
+  level: 1,
+  xpInLevel: 0,
+  xpForNext: 15,
+  rank: 'SOBREVIVENTE',
+  tool: 'knife',
   tools: ['knife'],
   characters: ['survivor'],
   character: 'survivor',
@@ -115,6 +121,12 @@ export function applyState(data) {
       potions: data.player.potions,
       totalKills: data.player.totalKills,
       runs: data.player.runs,
+      xp: data.player.xp,
+      level: data.player.level,
+      xpInLevel: data.player.xpInLevel,
+      xpForNext: data.player.xpForNext,
+      rank: data.player.rank,
+      tool: data.player.tool,
       tools: data.player.tools,
       characters: data.player.characters,
       character: data.player.character,
@@ -170,6 +182,12 @@ export async function logout() {
     potions: 0,
     totalKills: 0,
     runs: 0,
+    xp: 0,
+    level: 1,
+    xpInLevel: 0,
+    xpForNext: 15,
+    rank: 'SOBREVIVENTE',
+    tool: 'knife',
     tools: ['knife'],
     characters: ['survivor'],
     character: 'survivor',
@@ -184,10 +202,10 @@ export async function fetchState() {
   return data;
 }
 
-export async function reportRun({ day, coins, kills, runs = 0 }) {
+export async function reportRun({ day, coins, kills, runs = 0, nights = 0 }) {
   const data = await request('/api/run/report', {
     method: 'POST',
-    body: { day, coins, kills, runs },
+    body: { day, coins, kills, runs, nights },
   });
   applyState(data);
   return data;
@@ -226,6 +244,12 @@ export async function buyCharacter(characterId) {
 
 export async function selectCharacter(characterId) {
   const data = await request('/api/character/select', { method: 'POST', body: { characterId } });
+  applyState(data);
+  return data;
+}
+
+export async function selectTool(toolId) {
+  const data = await request('/api/tool/select', { method: 'POST', body: { toolId } });
   applyState(data);
   return data;
 }

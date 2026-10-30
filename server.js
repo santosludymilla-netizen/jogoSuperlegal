@@ -156,10 +156,14 @@ app.get('/api/inventory', auth, (request, response) => {
 });
 
 app.post('/api/run/report', auth, (request, response) => {
-  const { day, coins, kills, runs } = request.body || {};
-  const player = store.reportRun(request.playerRow.id, { day, coins, kills, runs });
+  const { day, coins, kills, runs, nights } = request.body || {};
+  const result = store.reportRun(request.playerRow.id, { day, coins, kills, runs, nights });
   const newAchievements = store.syncAchievements(request.playerRow.id);
-  response.json({ ...stateOf(player.id), newAchievements });
+  response.json({
+    ...stateOf(result.player.id),
+    newAchievements,
+    progress: result.progress,
+  });
 });
 
 // ---------- baú dourado ----------
@@ -208,6 +212,13 @@ app.post('/api/shop/character', auth, (request, response) => {
 app.post('/api/character/select', auth, (request, response) => {
   const { characterId } = request.body || {};
   const result = store.selectCharacter(request.playerRow.id, characterId);
+  if (result.error) return fail(response, 400, result.error);
+  response.json(stateOf(result.player.id));
+});
+
+app.post('/api/tool/select', auth, (request, response) => {
+  const { toolId } = request.body || {};
+  const result = store.selectTool(request.playerRow.id, toolId);
   if (result.error) return fail(response, 400, result.error);
   response.json(stateOf(result.player.id));
 });

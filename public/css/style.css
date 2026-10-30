@@ -498,6 +498,17 @@ body {
   transform: none;
 }
 
+.tool.is-preferred {
+  box-shadow:
+    0 0 18px rgba(255, 176, 0, 0.35),
+    inset 0 0 18px rgba(255, 176, 0, 0.08);
+  border-color: var(--gold);
+}
+
+.tool.is-preferred .tool-desc {
+  color: var(--gold);
+}
+
 .tool-rarity {
   padding: 3px 5px;
   font-size: 0.34rem;
@@ -825,6 +836,12 @@ body {
   color: var(--green);
 }
 
+.menu-player-level {
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 10px rgba(255, 176, 0, 0.35);
+}
+
 .menu-player-perk {
   color: var(--pink);
 }
@@ -985,6 +1002,56 @@ body {
   color: var(--pink);
 }
 
+.inventory-level {
+  margin: 4px 0 16px;
+  padding: 12px 14px;
+  background: #080b07;
+  border: 2px solid rgba(255, 176, 0, 0.32);
+  box-shadow: inset 0 0 18px rgba(255, 176, 0, 0.05);
+}
+
+.inventory-level-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.inventory-rank {
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 176, 0, 0.45);
+}
+
+.inventory-level-value {
+  font-size: 0.38rem;
+  letter-spacing: 0.12em;
+  color: var(--bone);
+}
+
+.inventory-level-bar {
+  height: 8px;
+  background: #140c05;
+  border: 1px solid #3a2a10;
+}
+
+.inventory-level-bar div {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(to right, #8a5a00, var(--gold));
+  transition: width 0.25s ease;
+}
+
+.inventory-xp {
+  margin: 8px 0 0;
+  font-size: 0.32rem;
+  line-height: 1.8;
+  letter-spacing: 0.08em;
+  color: var(--ash);
+}
+
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
@@ -1055,11 +1122,43 @@ body {
   color: var(--gold);
 }
 
+.inventory-item-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .inventory-item-kind {
   font-size: 0.3rem;
   letter-spacing: 0.1em;
   color: var(--ash);
-  writing-mode: vertical-rl;
+}
+
+.item-action {
+  padding: 6px 8px;
+  font-family: var(--font-pixel);
+  font-size: 0.3rem;
+  letter-spacing: 0.1em;
+  color: var(--green);
+  cursor: pointer;
+  background: #07110a;
+  border: 1px solid #2c4428;
+}
+
+.item-action:hover,
+.item-action:focus-visible {
+  color: var(--bone);
+  border-color: var(--green);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.3);
+}
+
+.item-action.is-current {
+  color: var(--gold);
+  border-color: rgba(255, 176, 0, 0.5);
+  cursor: default;
+  opacity: 0.85;
 }
 
 .inventory-empty {
@@ -1143,6 +1242,88 @@ body {
 
 #inventory .btn--ghost {
   margin-top: 18px;
+}
+
+/* ---------- baú dourado ---------- */
+
+.panel--chest {
+  width: min(94vw, 560px);
+  border-color: rgba(255, 176, 0, 0.45);
+  box-shadow:
+    0 0 50px rgba(0, 0, 0, 0.9),
+    inset 0 0 40px rgba(255, 176, 0, 0.06);
+}
+
+.panel--chest .overlay-title {
+  margin-bottom: 16px;
+  text-align: center;
+  color: var(--gold);
+  text-shadow:
+    0 0 10px rgba(255, 176, 0, 0.85),
+    0 0 30px rgba(255, 176, 0, 0.35);
+}
+
+.chest-kicker {
+  margin: 0 0 8px;
+  font-size: 0.42rem;
+  letter-spacing: 0.24em;
+  text-align: center;
+  color: var(--ash);
+}
+
+.chest-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 14px;
+  background: #120d04;
+  border: 2px solid rgba(255, 176, 0, 0.5);
+  box-shadow: inset 0 0 26px rgba(255, 176, 0, 0.08);
+}
+
+.chest-card .tool-icon {
+  width: 54px;
+  height: 54px;
+  filter: drop-shadow(0 0 10px rgba(255, 176, 0, 0.7));
+}
+
+.chest-tool-name {
+  margin: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #ffd166;
+  text-shadow: 0 0 14px rgba(255, 176, 0, 0.45);
+}
+
+.chest-tool-stats {
+  margin: 0;
+  font-size: 0.36rem;
+  line-height: 1.9;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: var(--ash);
+}
+
+.chest-compare {
+  margin: 16px 0 4px;
+  min-height: 3.6em;
+  text-align: center;
+}
+
+.chest-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.chest-actions .btn {
+  width: min(100%, 340px);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
 }
 
 /* ---------- tutorial ---------- */

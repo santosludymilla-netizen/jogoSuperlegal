@@ -5,7 +5,7 @@ Estética dark e macabra com contraste entre **verde neon** e **rosa neon**.
 
 > Este README é o registro vivo do planejamento: toda ideia ou etapa nova é adicionada aqui.
 
-**Status atual:** login com banco de dados, menu, floresta, dias de 30 segundos com cura, noites de combate, arsenal com raridades, baú dourado a cada 2 dias, chefe a cada 10 dias, loja de ferramentas, poções e skins com ferramenta inicial, inventário completo e conquistas.
+**Status atual:** login com banco de dados, menu, floresta, dias de **10 segundos** com cura, noites de combate, arsenal com raridades e armas mais fortes/rápidas, baú dourado a cada 2 dias com escolha de troca, chefe a cada 10 dias com resistência proporcional ao jogador, **XP/nível/títulos**, loja de ferramentas, poções e skins com ferramenta inicial, e inventário com equipar de skins/ferramentas e conquistas.
 
 ---
 
@@ -54,7 +54,7 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 
 ### Tutorial do primeiro dia
 
-- Na **primeira partida**, antes do dia 1 começar, abre um **tutorial em 6 passos**: mover, mirar/atacar, os 30 s de dia com cura, a noite, o baú dourado e o progresso (loja/inventário).
+- Na **primeira partida**, antes do dia 1 começar, abre um **tutorial em 6 passos**: mover, mirar/atacar, os 10 s de dia com cura, a noite, o baú dourado com escolha de troca e o progresso (XP, níveis, loja/inventário).
 - O tutorial **pausa o jogo** (o relógio do dia não corre) e pode ser avançado com **PRÓXIMO**, `Enter`, `Espaço` ou pulado com **PULAR TUTORIAL** / `ESC`.
 - Depois de concluído (ou pulado) ele não abre sozinho de novo; o botão **COMO JOGAR** no menu abre o tutorial a qualquer momento.
 - Durante o dia 1, avisos curtos no HUD reforçam os controles e a meta da primeira noite.
@@ -62,7 +62,7 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 ### Dia, noite, dificuldade e chefes
 
 - O jogo é dividido em **dias**. A partida sempre começa no **dia 1**.
-- Cada dia começa com **30 segundos de luz**: os zumbis somem e a vida do jogador **se regenera sozinha** (100% da vida ao longo dos 30 s).
+- Cada dia começa com **10 segundos de luz**: os zumbis somem e a vida do jogador **se regenera sozinha** (100% da vida ao longo dos 10 s).
 - Quando o dia termina, começa a **noite**: os zumbis nascem e a noite só acaba quando todos morrem.
 - O **dia 1 é o tutorial** e tem **1 zumbi**.
 - A cada novo dia entram **+2 zumbis**: dia 1 = 1, dia 2 = 3, dia 3 = 5...
@@ -74,6 +74,7 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 - **Chefe a cada 10 dias** (dias 10, 20, 30...). A noite do chefe tem os zumbis normais + 1 chefe.
   - A vida do chefe é proporcional ao **DPS do jogador** (`dano ÷ recarga`), mirando em uma luta de alguns segundos.
   - O dano do chefe é proporcional ao **dano por golpe** do jogador.
+  - A **resistência** do chefe também cresce com a força do jogador (`~35% do dano atual por golpe`): armas melhores não derretem o chefe, mas cada golpe sempre causa **pelo menos 1** de dano.
   - O chefe bate forte e, a cada ~3,5 s, dá uma **pancada no chão** com onda de choque.
   - A barra de vida do chefe aparece no topo da tela; derrotá-lo dá um bônus de moedas (`15 + 2 × dia`).
 
@@ -90,21 +91,23 @@ Escolhidas no início de cada partida. Cada ferramenta tem **dano próprio**, re
 
 | Ferramenta | Raridade | Dano base | Recarga | Observação |
 |---|---|---|---|---|
-| Faca | COMUM | 5 | 0,30 s | rápida, alcance curto (vem de graça) |
-| Machado | COMUM | 5 | 0,62 s | arco amplo, maior alcance |
-| Taco de beisebol | COMUM | 8 | 0,55 s | arco amplo e bom knockback |
-| Facão | COMUM | 9 | 0,38 s | rápido e equilibrado |
-| Katana | RARA | 18 | 0,30 s | rápida, ampla e forte (loja) |
-| Lança envenenada | RARA | 15 | 0,50 s | golpe preciso e longo, acerta até 2 zumbis |
-| Arma | RARA | 30 | 0,90 s | tiro cerrado, acerta 1 alvo por disparo |
-| Motosserra | RARA | 26 | 0,34 s | -18% de velocidade |
-| Besta | RARA | 34 | 1,15 s | recarga lenta |
-| Submetralhadora | RARA | 12 | 0,14 s | dano baixo por tiro, cadência alta |
-| Minigun | MÍTICA | 16 | 0,09 s | cadência altíssima, -25% de velocidade (loja) |
-| Canhão de plasma | MÍTICA | 60 | 1,05 s | recarga lenta, exclusivo do baú dourado |
-| Lança-chamas | MÍTICA | 20 | 0,24 s | cone de fogo que atinge todos na área |
-| Foice | MÍTICA | 30 | 0,80 s | -10% de velocidade |
-| Marra | MÍTICA | 44 | 1,20 s | -20% de velocidade |
+| Faca | COMUM | 8 | 0,22 s | rápida, alcance curto (vem de graça) |
+| Machado | COMUM | 10 | 0,50 s | arco amplo, maior alcance |
+| Taco de beisebol | COMUM | 13 | 0,44 s | arco amplo e bom knockback |
+| Facão | COMUM | 14 | 0,30 s | rápido e equilibrado |
+| Katana | RARA | 28 | 0,24 s | rápida, ampla e forte (loja) |
+| Lança envenenada | RARA | 22 | 0,40 s | golpe preciso e longo, acerta até 2 zumbis |
+| Arma | RARA | 34 | 0,72 s | tiro preciso, acerta 1 alvo por disparo |
+| Motosserra | RARA | 34 | 0,24 s | -18% de velocidade |
+| Besta | RARA | 46 | 0,85 s | recarga lenta |
+| Submetralhadora | RARA | 16 | 0,11 s | dano baixo por tiro, cadência alta |
+| Minigun | MÍTICA | 20 | 0,07 s | cadência altíssima, -25% de velocidade (loja) |
+| Canhão de plasma | MÍTICA | 85 | 0,85 s | recarga lenta, exclusivo do baú dourado |
+| Lança-chamas | MÍTICA | 26 | 0,18 s | cone de fogo que atinge todos na área |
+| Foice | MÍTICA | 44 | 0,60 s | -10% de velocidade, acerta até 3 |
+| Marra | MÍTICA | 62 | 0,90 s | -20% de velocidade, knockback enorme |
+
+Todas as armas ficaram **mais fortes e mais rápidas** nesta versão. O alcance curto (`closeRange`) também aumentou: golpes acertam com segurança quem está colado no jogador, mesmo fora do arco da mira.
 
 **Disponibilidade:** faca sempre disponível; machado, taco, facão, katana e minigun liberam quando **comprados na loja**; ferramentas ganhas no **baú dourado** também ficam disponíveis. As raras/míticas "de sorte" entram de acordo com o seu **melhor dia**:
 
@@ -119,10 +122,12 @@ O sorteio acontece ao abrir a escolha de ferramenta. As cartas mostram raridade,
 ### Baú dourado (a cada 2 dias)
 
 - Ao **amanhecer dos dias 3, 5, 7, 9, 11...** nasce um **baú dourado no chão** da arena.
-- Basta **pisar no baú** durante os 30 segundos de luz para abrir.
+- Basta **pisar no baú** durante os 10 segundos de luz para abrir.
 - A recompensa é sorteada **no servidor**, que registra o dia aberto em `player_chests`: **uma recompensa por jogador por dia de baú** (evita farmar entrando e saindo da partida).
 - O baú entrega uma ferramenta **RARA ou MÍTICA** que você ainda não possui. Se você já tiver todas, o baú vira **+$25**.
-- A ferramenta ganha vai direto para o inventário e fica disponível na escolha do início da próxima partida.
+- Ao abrir, o jogo **mostra o que você ganhou** (raridade, dano e recarga) e **pausa a partida** com duas opções: **TROCAR DE FERRAMENTA** ou **CONTINUAR COM A MESMA**.
+- Trocar equipa a ferramenta na hora e salva a preferência na conta (`tool_id`). Continuar mantém a ferramenta atual; a nova fica guardada no inventário.
+- A ferramenta ganha também fica disponível na escolha do início da próxima partida e pode ser marcada como preferida no inventário.
 
 ### Progressão por noite
 
@@ -130,11 +135,32 @@ O sorteio acontece ao abrir a escolha de ferramenta. As cartas mostram raridade,
 - A resistência reduz o dano recebido em valor fixo, mas cada golpe sempre causa **pelo menos 1** de dano.
 - O HUD mostra os valores atuais de **DANO** e **RES**, além da **FASE** (dia com contagem regressiva ou noite).
 
+### XP, níveis e títulos
+
+- **+5 XP por noite sobrevivida** e **+1 XP por zumbi morto** (contabilizados no servidor a cada envio de progresso).
+- O XP total define o **nível da conta**, que aparece no menu, na escolha de ferramenta e no inventário.
+- A cada nível a exigência aumenta: `XP para o próximo nível = 15 + (nível − 1) × 10`.
+  - Nível 1 → 15 XP, nível 2 → 25 XP, nível 3 → 35 XP, e assim por diante.
+- **A cada 10 níveis** a conta ganha um **título**:
+
+| Nível | Título |
+|---|---|
+| 1+ | SOBREVIVENTE |
+| 10+ | ASSASSINO |
+| 20+ | CARNICEIRO |
+| 30+ | EXTERMINADOR |
+| 40+ | CEIFADOR |
+| 50+ | LENDA INFECTADA |
+
+O título mais alto alcançado fica em destaque no menu e no inventário. Ao subir de nível, um aviso aparece no topo da tela.
+
 ### Inventário e conquistas
 
-O botão **▤ INVENTÁRIO** fica no **canto superior esquerdo do menu** e abre um painel com duas seções:
+O botão **▤ INVENTÁRIO** fica no **canto superior esquerdo do menu** e abre um painel com o **nível/título**, a barra de XP, os itens e as conquistas:
 
+- **Nível/XP:** título atual, nível, barra de progresso e quanto falta para o próximo nível.
 - **Itens:** todas as ferramentas compradas ou ganhas, todas as skins compradas e as poções (com quantidade).
+  - Nas **ferramentas**, o botão **USAR** define a ferramenta **preferida** da conta; nas **skins**, o botão **EQUIPAR** troca o personagem.
 - **Conquistas:** progresso de cada conquista, com barra e estado (bloqueada/desbloqueada).
 
 Conquistas disponíveis:
@@ -175,7 +201,7 @@ Cada personagem tem também sua própria paleta de cores no sprite. O personagem
 
 ### Progresso salvo
 
-O banco SQLite (`data/jogo.db`) guarda: conta, moedas, melhor dia, mortes, partidas, ferramentas, personagens, poções, **inventário** (`player_items`), **conquistas** (`player_achievements`) e **baús abertos** (`player_chests`). Ao entrar em qualquer navegador, o progresso vem do servidor.
+O banco SQLite (`data/jogo.db`) guarda: conta, moedas, melhor dia, mortes, partidas, **XP** (`xp`), **ferramenta preferida** (`tool_id`), ferramentas, personagens, poções, **inventário** (`player_items`), **conquistas** (`player_achievements`) e **baús abertos** (`player_chests`). Ao entrar em qualquer navegador, o progresso vem do servidor.
 
 ---
 
@@ -221,12 +247,13 @@ infected/
 | `/api/auth/logout` | POST | invalida a sessão atual |
 | `/api/state` | GET | jogador + catálogo da loja + inventário + conquistas |
 | `/api/inventory` | GET | inventário e conquistas atualizados |
-| `/api/run/report` | POST | soma moedas, mortes, partidas e melhor dia; libera conquistas |
+| `/api/run/report` | POST | soma moedas, mortes, partidas, melhor dia e **XP** (+5/noite, +1/zumbi); libera conquistas e devolve o nível/título |
 | `/api/chest/open` | POST | abre o baú do dia (recompensa sorteada no servidor) |
 | `/api/shop/tool` | POST | compra ferramenta |
 | `/api/shop/potion` | POST | compra poção liberada pelo melhor dia |
 | `/api/shop/character` | POST | compra personagem e recebe a ferramenta inicial |
 | `/api/character/select` | POST | equipa personagem comprado |
+| `/api/tool/select` | POST | define a ferramenta preferida da conta |
 
 Todas as rotas, menos cadastro/login, exigem `Authorization: Bearer <token>`.
 
@@ -282,7 +309,7 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 - [x] Sangue no chão, partículas e tremor de tela
 - [x] +2 zumbis por dia e dificuldade crescente por noite
 - [x] 1 moeda a cada 2 mortes e +5 por noite sobrevivida
-- [x] Escolha de ferramenta no início (faca ou machado, 5 de dano)
+- [x] Escolha de ferramenta no início (faca ou machado)
 - [x] Tela de game over com dia alcançado e moedas ganhas
 
 ### Parte 4 — Loja ✅
@@ -316,7 +343,7 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 ### Parte 7 — INFECTED ✅
 
 - [x] Nome do jogo alterado para **INFECTED**
-- [x] Dias de **30 segundos** com **regeneração de vida**
+- [x] Dias de **10 segundos** com **regeneração de vida**
 - [x] **Baú dourado** no chão a cada 2 dias (dias 3, 5, 7...)
 - [x] Recompensa do baú sorteada no servidor, uma por dia por conta
 - [x] Ferramentas **RARAS** e **MÍTICAS** (katana, minigun, canhão de plasma)
@@ -327,8 +354,20 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 - [x] Senha com **8 a 64 caracteres** e pelo menos 1 número
 - [ ] Áudio (golpes, dano, ambiente) via WebAudio
 - [ ] Pause durante a partida
-- [ ] Balanceamento fino das noites e dos chefes
 - [ ] Mais personagens e ferramentas de baú
+
+### Parte 8 — Nível, baú com escolha e chefes resistentes ✅
+
+- [x] Dia reduzido para **10 segundos**
+- [x] Armas mais fortes e mais rápidas, com alcance curto maior
+- [x] Baú mostra a recompensa e deixa **trocar de ferramenta ou continuar com a mesma**
+- [x] **XP**: +5 por noite sobrevivida e +1 por zumbi morto
+- [x] **Nível de conta** com exigência crescente de XP
+- [x] **Títulos a cada 10 níveis** (ASSASSINO, CARNICEIRO, EXTERMINADOR, CEIFADOR, LENDA INFECTADA)
+- [x] Nível/título no menu, na escolha de ferramenta e no inventário
+- [x] Inventário com **EQUIPAR** skins e **USAR** ferramentas (preferência salva no servidor)
+- [x] Chefe a cada 10 noites com **resistência proporcional à força do jogador**
+- [x] Novas rotas `POST /api/tool/select` e XP em `POST /api/run/report`
 
 ---
 
@@ -336,15 +375,16 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 
 - Canvas com resolução interna de 1/4 da tela: pixels grandes e nítidos em qualquer monitor.
 - Cenário do menu desenhado por código com PRNG de semente fixa.
-- Partida em canvas separado por estado (`auth`, `menu`, `tool`, `playing`, `inventory`, `shop`, `gameover`), com um único `requestAnimationFrame`.
+- Partida em canvas separado por estado (`auth`, `menu`, `tool`, `tutorial`, `playing`, `chest`, `inventory`, `shop`, `gameover`), com um único `requestAnimationFrame`. No estado `chest` o jogo é desenhado mas não atualizado.
 - Zumbis e jogador desenhados por sprites de texto (pixel a pixel) — fáceis de editar.
 - O jogador alterna duas poses de passada; a ferramenta escolhida é desenhada em pixel art, girada a partir da mão e acompanha a animação do golpe.
 - Cada golpe tem dois alcances: o arco na direção do mouse e um raio curto ao redor do jogador para acertar zumbis colados.
 - A arma é um tiro cerrado (traço de bala + faísca) que atinge no máximo 1 alvo; o lança-chamas desenha um cone de fogo e atinge todos os zumbis nele.
 - Fundo da arena e manchas de sangue ficam em canvas offscreen para não redesenhar a floresta a cada frame.
 - Dano e resistência escalam por noite (+4 de dano e +1 de resistência); o dano base vem da ferramenta, o personagem multiplica e a “poção” da loja soma +5 em todas.
-- O chefe usa o mesmo sistema de zumbis (com `boss: true`), o que dá perseguição, knockback reduzido e barra de vida de graça; a escala vem do DPS atual do jogador.
-- O ciclo dia/noite é uma `phase` no cliente: 30 s de dia com spawn desligado e cura, depois noite com a horda. O baú existe só no dia e chama `POST /api/chest/open`.
+- O chefe usa o mesmo sistema de zumbis (com `boss: true`), o que dá perseguição, knockback reduzido e barra de vida de graça; a escala vem do DPS atual do jogador e a resistência de ~35% do dano por golpe (`damageZombie` sempre aplica pelo menos 1).
+- O ciclo dia/noite é uma `phase` no cliente: 10 s de dia com spawn desligado e cura, depois noite com a horda. O baú existe só no dia e chama `POST /api/chest/open`; a escolha de troca pausa o loop e usa `equipChestTool`/`keepChestTool`.
+- XP e nível são calculados no servidor a partir do XP total (`levelInfo`), com `xpForNext(nível) = 15 + (nível − 1) × 10`; o cliente apenas exibe o nível, o progresso e o título devolvidos pela API.
 - Inventário (`player_items`), conquistas (`player_achievements`) e baús (`player_chests`) são tabelas normalizadas; `player_tools`/`player_characters`/poções são espelhados para o inventário na migração.
 - As conquistas são recalculadas no servidor a cada relato de partida (`syncAchievements`), nunca no cliente.
 - O servidor nunca confia no cliente para saldo nem para a recompensa do baú: o relato de partida soma moedas com teto por envio, cada compra é validada e debitada em transação e a ferramenta do baú é sorteada no servidor.

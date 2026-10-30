@@ -24,6 +24,8 @@ db.exec(`
     potions INTEGER NOT NULL DEFAULT 0,
     total_kills INTEGER NOT NULL DEFAULT 0,
     runs INTEGER NOT NULL DEFAULT 0,
+    xp INTEGER NOT NULL DEFAULT 0,
+    tool_id TEXT NOT NULL DEFAULT 'knife',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -76,10 +78,16 @@ db.exec(`
   );
 `);
 
-// Migração suave para bancos criados antes dos personagens.
+// Migração suave para bancos criados antes dos personagens, XP e ferramenta preferida.
 const playerColumns = db.prepare('PRAGMA table_info(players)').all().map((column) => column.name);
 if (!playerColumns.includes('character_id')) {
   db.exec("ALTER TABLE players ADD COLUMN character_id TEXT NOT NULL DEFAULT 'survivor'");
+}
+if (!playerColumns.includes('xp')) {
+  db.exec('ALTER TABLE players ADD COLUMN xp INTEGER NOT NULL DEFAULT 0');
+}
+if (!playerColumns.includes('tool_id')) {
+  db.exec("ALTER TABLE players ADD COLUMN tool_id TEXT NOT NULL DEFAULT 'knife'");
 }
 
 // Espelha no inventário o que já era do jogador antes da tabela existir.
@@ -173,6 +181,56 @@ const ACHIEVEMENTS = [
     desc: `Mate ${kills} zumbis no total.`,
   })),
 ];
+
+// ---------- XP, níveis e títulos ----------
+
+const XP_PER_NIGHT = 5;
+const XP_PER_KILL = 1;
+
+// Cada nível exige mais XP que o anterior.
+const XP_BASE = 15;
+const XP_STEP = 10;
+
+// Títulos ganhos a cada 10 níveis.
+const RANKS = [
+  { level: 1, title: 'SOBREVIVENTE' },
+  { level: 10, title: 'ASSASSINO' },
+  { level: 20, title: 'CARNICEIRO' },
+  { level: 30, title: 'EXTERMINADOR' },
+  { level: 40, title: 'CEIFADOR' },
+  { level: 50, title: 'LENDA INFECTADA' },
+];
+
+function xpForNext(level) {
+  return XP_BASE + (Math.max(1, level) - 1) * XP_STEP;
+}
+
+// Converte o XP total em nível, progresso dentro do nível e título atual.
+function levelInfo(xp) {
+  const total = Math.max(0, Math.floor(Number(xp) || 0));
+  let level = 1;
+  let remaining = total;
+  let need = xpForNext(level);
+
+  while (remaining >= need && level < 100000) {
+    remaining -= need;
+    level += 1;
+    need = xpForNext(level);
+  }
+
+  const rank = RANKS.reduce(
+    (best, entry) => (level >= entry.level ? entry : best),
+    RANKS[0]
+  );
+
+  return {
+    xp: total,
+    level,
+    xpInLevel: remaining,
+    xpForNext: need,
+    rank: rank.title,
+  };
+}
 
 const namePattern = /^[A-Za-z0-9_]{3,16}$/;
 // Senha: no mínimo 8 caracteres, apenas letras/números, com pelo menos 1 número.
@@ -315,6 +373,9 @@ function toPublicPlayer(row) {
     potions: row.potions,
     totalKills: row.total_kills,
     runs: row.runs,
+    xp: row.xp || 0,
+    tool: row.tool_id || STARTING_TOOL,
+    ...levelInfo(row.xp || 0),
     tools: toolsOf(row.id),
     characters: charactersOf(row.id),
     character: row.character_id || STARTING_CHARACTER,
@@ -444,7 +505,7 @@ const store = {
     db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token));
   },
 
-  reportRun(playerId, { day, coins, kills, runs }) {
+  reportRun(playerId, { day, coins, kills, runs, nights }) {
     const row = db.prepare('SELECT * FROM players WHERE id = ?').get(playerId);
     if (!row) return null;
 
@@ -452,6 +513,11 @@ const store = {
     const safeCoins = Math.max(0, Math.min(5000, Math.floor(Number(coins) || 0)));
     const safeKills = Math.max(0, Math.min(2000, Math.floor(Number(kills) || 0)));
     const safeRuns = Math.max(0, Math.min(1, Math.floor(Number(runs) || 0)));
+    const safeNights = Math.max(0, Math.min(200, Math.floor(Number(nights) || 0)));
+
+    // +5 XP por noite sobrevivida e +1 XP por zumbi morto.
+    const xpGain = safeNights * XP_PER_NIGHT + safeKills * XP_PER_KILL;
+    const before = levelInfo(row.xp || 0);
 
     db.prepare(
       `UPDATE players
@@ -459,11 +525,26 @@ const store = {
               best_day = MAX(best_day, ?),
               total_kills = total_kills + ?,
               runs = runs + ?,
+              xp = xp + ?,
               updated_at = ?
         WHERE id = ?`
-    ).run(safeCoins, safeDay, safeKills, safeRuns, now(), playerId);
+    ).run(safeCoins, safeDay, safeKills, safeRuns, xpGain, now(), playerId);
 
-    return this.getPlayer(playerId);
+    const player = this.getPlayer(playerId);
+    const after = levelInfo(player ? player.xp : (row.xp || 0) + xpGain);
+
+    return {
+      player,
+      progress: {
+        xpGain,
+        previousLevel: before.level,
+        level: after.level,
+        levelUp: after.level > before.level,
+        previousRank: before.rank,
+        rank: after.rank,
+        rankUp: after.rank !== before.rank,
+      },
+    };
   },
 
   buyTool(playerId, toolId) {
@@ -565,6 +646,22 @@ const store = {
     return { player: this.getPlayer(playerId) };
   },
 
+  // Ferramenta preferida: aparece marcada no inventário e na escolha de ferramenta.
+  selectTool(playerId, toolId) {
+    if (!(toolId in TOOL_RARITY)) return { error: 'FERRAMENTA DESCONHECIDA.' };
+    if (!toolsOf(playerId).includes(toolId)) {
+      return { error: 'VOCÊ AINDA NÃO TEM ESSA FERRAMENTA.' };
+    }
+
+    db.prepare('UPDATE players SET tool_id = ?, updated_at = ? WHERE id = ?').run(
+      toolId,
+      now(),
+      playerId
+    );
+
+    return { player: this.getPlayer(playerId) };
+  },
+
   // Abre o baú dourado do dia. O servidor escolhe a ferramenta, nunca o cliente.
   openChest(playerId, day) {
     const safeDay = Math.floor(Number(day) || 0);
@@ -622,6 +719,11 @@ const store = {
   SHOP_CHARACTERS,
   CHARACTER_STARTER,
   POTION_PRICE,
+  levelInfo,
+  xpForNext,
+  RANKS,
+  XP_PER_NIGHT,
+  XP_PER_KILL,
 };
 
 module.exports = { store, db };
