@@ -63,6 +63,8 @@ function stateOf(playerId) {
   return {
     player: store.getPlayer(playerId),
     shop: store.shopCatalog(playerId),
+    inventory: store.inventoryOf(playerId),
+    achievements: store.achievementsOf(playerId),
   };
 }
 
@@ -109,8 +111,7 @@ app.post('/api/auth/register', (request, response) => {
   const token = store.createSession(player.id);
   response.status(201).json({
     token,
-    player,
-    shop: store.shopCatalog(player.id),
+    ...stateOf(player.id),
   });
 });
 
@@ -131,7 +132,7 @@ app.post('/api/auth/login', (request, response) => {
   }
 
   const token = store.createSession(player.id);
-  response.json({ token, player, shop: store.shopCatalog(player.id) });
+  response.json({ token, ...stateOf(player.id) });
 });
 
 app.post('/api/auth/logout', auth, (request, response) => {
@@ -145,10 +146,38 @@ app.get('/api/state', auth, (request, response) => {
   response.json(stateOf(request.playerRow.id));
 });
 
+// Inventário e conquistas em uma rota própria (o menu usa ao abrir o painel).
+app.get('/api/inventory', auth, (request, response) => {
+  const id = request.playerRow.id;
+  response.json({
+    inventory: store.inventoryOf(id),
+    achievements: store.achievementsOf(id),
+  });
+});
+
 app.post('/api/run/report', auth, (request, response) => {
   const { day, coins, kills, runs } = request.body || {};
   const player = store.reportRun(request.playerRow.id, { day, coins, kills, runs });
-  response.json({ player, shop: store.shopCatalog(player.id) });
+  const newAchievements = store.syncAchievements(request.playerRow.id);
+  response.json({ ...stateOf(player.id), newAchievements });
+});
+
+// ---------- baú dourado ----------
+
+app.post('/api/chest/open', auth, (request, response) => {
+  const { day } = request.body || {};
+  const result = store.openChest(request.playerRow.id, day);
+  if (result.error) return fail(response, 400, result.error);
+
+  const id = request.playerRow.id;
+  response.json({
+    ...stateOf(id),
+    chest: {
+      toolId: result.toolId,
+      coins: result.coins,
+      alreadyOpened: Boolean(result.alreadyOpened),
+    },
+  });
 });
 
 // ---------- loja ----------
@@ -157,27 +186,30 @@ app.post('/api/shop/tool', auth, (request, response) => {
   const { toolId } = request.body || {};
   const result = store.buyTool(request.playerRow.id, toolId);
   if (result.error) return fail(response, 400, result.error);
-  response.json({ player: result.player, shop: store.shopCatalog(result.player.id) });
+  response.json(stateOf(result.player.id));
 });
 
 app.post('/api/shop/potion', auth, (request, response) => {
   const result = store.buyPotion(request.playerRow.id);
   if (result.error) return fail(response, 400, result.error);
-  response.json({ player: result.player, shop: store.shopCatalog(result.player.id) });
+  response.json(stateOf(result.player.id));
 });
 
 app.post('/api/shop/character', auth, (request, response) => {
   const { characterId } = request.body || {};
   const result = store.buyCharacter(request.playerRow.id, characterId);
   if (result.error) return fail(response, 400, result.error);
-  response.json({ player: result.player, shop: store.shopCatalog(result.player.id) });
+  response.json({
+    ...stateOf(result.player.id),
+    grantedStarter: result.grantedStarter ? result.starterTool : null,
+  });
 });
 
 app.post('/api/character/select', auth, (request, response) => {
   const { characterId } = request.body || {};
   const result = store.selectCharacter(request.playerRow.id, characterId);
   if (result.error) return fail(response, 400, result.error);
-  response.json({ player: result.player, shop: store.shopCatalog(result.player.id) });
+  response.json(stateOf(result.player.id));
 });
 
 // ---------- arquivos estáticos ----------
@@ -216,5 +248,5 @@ app.use((error, request, response, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`jogoSuperlegal rodando em http://localhost:${PORT}`);
+  console.log(`INFECTED rodando em http://localhost:${PORT}`);
 });

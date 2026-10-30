@@ -743,13 +743,71 @@ body {
   opacity: 1;
 }
 
-/* ---------- jogador logado ---------- */
+.hud-row strong.is-night {
+  color: var(--pink);
+  text-shadow: 0 0 10px rgba(255, 46, 136, 0.65);
+}
 
-.menu-player {
+.hud-chest {
+  position: fixed;
+  left: 50%;
+  bottom: 14%;
+  margin: 0;
+  padding: 7px 12px;
+  font-size: 0.46rem;
+  letter-spacing: 0.16em;
+  color: #0b0700;
+  background: var(--gold);
+  box-shadow: 0 0 22px rgba(255, 176, 0, 0.55);
+  transform: translateX(-50%);
+  animation: chest-pulse 1s ease-in-out infinite;
+}
+
+@keyframes chest-pulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 176, 0, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(255, 176, 0, 0.85); }
+}
+
+/* ---------- jogador logado + inventário ---------- */
+
+.menu-top-left {
   position: fixed;
   top: 16px;
   left: 18px;
-  z-index: 5;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.btn--inv {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 0.46rem;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  background: rgba(5, 5, 5, 0.78);
+  border: 2px solid rgba(255, 176, 0, 0.45);
+  box-shadow:
+    inset 0 0 12px rgba(255, 176, 0, 0.08),
+    3px 3px 0 rgba(0, 0, 0, 0.75);
+}
+
+.btn--inv:hover,
+.btn--inv:focus-visible {
+  color: var(--bone);
+  border-color: var(--gold);
+  box-shadow:
+    0 0 18px rgba(255, 176, 0, 0.35),
+    inset 0 0 14px rgba(255, 176, 0, 0.14),
+    3px 3px 0 rgba(0, 0, 0, 0.75);
+  transform: translateY(-1px);
+}
+
+.menu-player {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -909,6 +967,212 @@ body {
   transition: width 0.18s linear;
 }
 
+/* ---------- inventário ---------- */
+
+.panel--inventory {
+  width: min(96vw, 720px);
+  text-align: left;
+}
+
+.panel--inventory .overlay-sub {
+  text-align: left;
+}
+
+.inventory-subtitle {
+  margin: 18px 0 8px;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  color: var(--pink);
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 10px;
+}
+
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #080b07;
+  border: 2px solid #24321f;
+}
+
+.inventory-item--rara {
+  border-color: rgba(255, 176, 0, 0.45);
+}
+
+.inventory-item--mitica {
+  border-color: rgba(255, 46, 136, 0.55);
+  box-shadow: inset 0 0 14px rgba(255, 46, 136, 0.08);
+}
+
+.inventory-item .tool-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+}
+
+.inventory-item .char-icon {
+  width: 22px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+
+.item-icon-glyph {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  color: var(--green);
+  border: 1px solid rgba(57, 255, 20, 0.45);
+}
+
+.inventory-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.inventory-item-body h4 {
+  margin: 0 0 3px;
+  font-size: 0.42rem;
+  line-height: 1.6;
+  color: var(--bone);
+}
+
+.inventory-item-body p {
+  margin: 0;
+  font-size: 0.34rem;
+  line-height: 1.7;
+  color: var(--ash);
+}
+
+.item-qty {
+  color: var(--gold);
+}
+
+.inventory-item-kind {
+  font-size: 0.3rem;
+  letter-spacing: 0.1em;
+  color: var(--ash);
+  writing-mode: vertical-rl;
+}
+
+.inventory-empty {
+  margin: 0;
+  font-size: 0.38rem;
+  line-height: 1.9;
+  color: var(--ash);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 10px;
+}
+
+.achievement {
+  padding: 11px 12px;
+  background: #080b07;
+  border: 2px solid #24321f;
+  opacity: 0.72;
+}
+
+.achievement.is-unlocked {
+  border-color: rgba(255, 176, 0, 0.6);
+  box-shadow: inset 0 0 16px rgba(255, 176, 0, 0.08);
+  opacity: 1;
+}
+
+.achievement-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.achievement-title {
+  font-size: 0.42rem;
+  letter-spacing: 0.1em;
+  color: var(--bone);
+}
+
+.achievement.is-unlocked .achievement-title {
+  color: var(--gold);
+}
+
+.achievement-progress {
+  font-size: 0.34rem;
+  color: var(--ash);
+}
+
+.achievement-desc {
+  margin: 6px 0 8px;
+  font-size: 0.32rem;
+  line-height: 1.8;
+  color: var(--ash);
+}
+
+.achievement-bar {
+  height: 6px;
+  background: #140c05;
+  border: 1px solid #3a2a10;
+}
+
+.achievement-bar div {
+  height: 100%;
+  background: linear-gradient(to right, #8a5a00, var(--gold));
+  transition: width 0.25s ease;
+}
+
+.achievement-state {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 0.3rem;
+  letter-spacing: 0.12em;
+  color: var(--ash);
+}
+
+.achievement.is-unlocked .achievement-state {
+  color: var(--gold);
+}
+
+#inventory .btn--ghost {
+  margin-top: 18px;
+}
+
+/* ---------- aviso de conquista ---------- */
+
+.toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 12;
+  padding: 10px 16px;
+  font-size: 0.46rem;
+  letter-spacing: 0.14em;
+  color: #0b0700;
+  background: var(--gold);
+  box-shadow: 0 0 26px rgba(255, 176, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -14px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.shop-card-starter {
+  color: var(--gold);
+}
+
 /* ---------- ofertas ---------- */
 
 .overlay-title--gold {
@@ -921,10 +1185,6 @@ body {
 .tool-desc--bad {
   min-height: 3.4em;
   color: #ff5a72;
-}
-
-#tool-offer .btn--ghost {
-  margin-top: 16px;
 }
 
 /* ---------- loja em cartoes ---------- */

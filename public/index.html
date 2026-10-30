@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>jogoSuperlegal</title>
+  <title>INFECTED</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -29,14 +29,23 @@
     <span id="menu-coins-value">0</span>
   </div>
 
-  <div id="menu-player" class="menu-player" hidden>
-    <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
-    <span id="menu-player-perk" class="menu-player-perk"></span>
-    <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button">SAIR</button>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="menu-top-left" class="menu-top-left">
+    <button id="btn-inventory" class="btn btn--inv" type="button">
+      <span aria-hidden="true">▤</span>
+      <span>INVENTÁRIO</span>
+    </button>
+
+    <div id="menu-player" class="menu-player" hidden>
+      <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
+      <span id="menu-player-perk" class="menu-player-perk"></span>
+      <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button">SAIR</button>
+    </div>
   </div>
 
   <main id="menu" class="menu">
-    <h1 class="title" data-text="JOGO SUPERLEGAL">JOGO SUPERLEGAL</h1>
+    <h1 class="title" data-text="INFECTED">INFECTED</h1>
     <p class="tagline">SOBREVIVA À NOITE</p>
 
     <div class="buttons">
@@ -52,7 +61,7 @@
   <!-- Login / cadastro -->
   <section id="auth" class="overlay overlay--auth" hidden>
     <div class="panel panel--auth">
-      <h1 class="title title--small" data-text="JOGO SUPERLEGAL">JOGO SUPERLEGAL</h1>
+      <h1 class="title title--small" data-text="INFECTED">INFECTED</h1>
       <p class="overlay-sub">ENTRE OU CRIE UMA CONTA PARA SALVAR SEU PROGRESSO</p>
 
       <div class="auth-tabs">
@@ -68,7 +77,7 @@
 
         <label class="auth-field">
           <span>SENHA</span>
-          <input id="auth-password" name="password" type="password" maxlength="8" autocomplete="current-password">
+          <input id="auth-password" name="password" type="password" maxlength="64" autocomplete="current-password">
         </label>
 
         <p id="auth-error" class="auth-error" role="alert"></p>
@@ -76,7 +85,7 @@
         <button id="auth-submit" class="btn btn--play btn--compact" type="submit">ENTRAR</button>
       </form>
 
-      <p class="auth-hint">NOME: 3 A 16 LETRAS/NÚMEROS · SENHA: 4 A 8 CARACTERES COM PELO MENOS 1 NÚMERO</p>
+      <p class="auth-hint">NOME: 3 A 16 LETRAS/NÚMEROS · SENHA: 8 A 64 CARACTERES COM PELO MENOS 1 NÚMERO</p>
     </div>
   </section>
 
@@ -85,6 +94,7 @@
     <div class="hud-top">
       <div class="hud-left">
         <p class="hud-row"><span class="hud-label">DIA</span> <strong id="hud-day">1</strong></p>
+        <p class="hud-row"><span class="hud-label">FASE</span> <strong id="hud-phase">DIA 30s</strong></p>
         <p class="hud-row"><span class="hud-label">ZUMBIS</span> <strong id="hud-zombies">0/1</strong></p>
         <p class="hud-row"><span class="hud-label">DANO</span> <strong id="hud-damage">5</strong></p>
         <p class="hud-row"><span class="hud-label">RES</span> <strong id="hud-resist">0</strong></p>
@@ -105,6 +115,7 @@
     </div>
 
     <p id="hud-tip" class="hud-tip"></p>
+    <p id="hud-chest" class="hud-chest" hidden>BAÚ DOURADO NO CHÃO</p>
   </section>
 
   <!-- Escolha da ferramenta -->
@@ -117,15 +128,23 @@
     </div>
   </section>
 
-  <!-- Oferta de ferramenta a cada 2 dias -->
-  <section id="tool-offer" class="overlay" hidden>
-    <div class="panel panel--tools">
-      <h2 class="overlay-title overlay-title--gold">OFERTA DE FERRAMENTA</h2>
-      <p id="offer-meta" class="overlay-sub">DUAS FERRAMENTAS MELHORES, MAS CADA UMA TEM UMA DESVANTAGEM</p>
+  <!-- Inventário e conquistas -->
+  <section id="inventory" class="overlay" hidden>
+    <div class="panel panel--inventory">
+      <div class="panel-head">
+        <h2 class="overlay-title">INVENTÁRIO</h2>
+        <div class="shop-coins"><span class="money">$</span> <span id="inventory-coins">0</span></div>
+      </div>
 
-      <div id="offer-grid" class="tool-grid"></div>
+      <p class="overlay-sub">TUDO O QUE VOCÊ JÁ COMPROU OU GANHOU</p>
 
-      <button id="offer-skip" class="btn btn--ghost" type="button">RECUSAR OFERTA</button>
+      <h3 class="inventory-subtitle">ITENS</h3>
+      <div id="inventory-items" class="inventory-grid"></div>
+
+      <h3 class="inventory-subtitle">CONQUISTAS</h3>
+      <div id="inventory-achievements" class="achievement-grid"></div>
+
+      <button id="inventory-back" class="btn btn--ghost" type="button">VOLTAR</button>
     </div>
   </section>
 

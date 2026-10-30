@@ -50,6 +50,30 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_sessions_player ON sessions (player_id);
+
+  CREATE TABLE IF NOT EXISTS player_items (
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    acquired_at INTEGER NOT NULL,
+    PRIMARY KEY (player_id, kind, item_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS player_achievements (
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    achievement_id TEXT NOT NULL,
+    unlocked_at INTEGER NOT NULL,
+    PRIMARY KEY (player_id, achievement_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS player_chests (
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    day INTEGER NOT NULL,
+    tool_id TEXT NOT NULL,
+    opened_at INTEGER NOT NULL,
+    PRIMARY KEY (player_id, day)
+  );
 `);
 
 // Migração suave para bancos criados antes dos personagens.
@@ -58,15 +82,50 @@ if (!playerColumns.includes('character_id')) {
   db.exec("ALTER TABLE players ADD COLUMN character_id TEXT NOT NULL DEFAULT 'survivor'");
 }
 
-// Ferramentas "iniciais" que podem ser compradas com moedas. As raras/miticas
-// continuam aparecendo apenas por sorte na escolha do inicio da partida.
+// Espelha no inventário o que já era do jogador antes da tabela existir.
+db.exec(`
+  INSERT OR IGNORE INTO player_items (player_id, kind, item_id, quantity, acquired_at)
+    SELECT player_id, 'tool', tool_id, 1, acquired_at FROM player_tools;
+  INSERT OR IGNORE INTO player_items (player_id, kind, item_id, quantity, acquired_at)
+    SELECT player_id, 'character', character_id, 1, acquired_at FROM player_characters;
+  INSERT OR IGNORE INTO player_items (player_id, kind, item_id, quantity, acquired_at)
+    SELECT id, 'potion', 'tool_potion', potions, created_at FROM players WHERE potions > 0;
+`);
+
+// Ferramentas que podem ser compradas com moedas na loja.
 const SHOP_TOOLS = {
   axe: 30,
   bat: 45,
   machete: 55,
+  katana: 90,
+  minigun: 160,
 };
 
-// Personagens (skins) com vantagens própria. O sobrevivente é o padrão.
+// Raridade de cada ferramenta (espelha o catálogo do cliente em public/js/game.js).
+const TOOL_RARITY = {
+  knife: 'comum',
+  axe: 'comum',
+  bat: 'comum',
+  machete: 'comum',
+  katana: 'rara',
+  spear: 'rara',
+  gun: 'rara',
+  crossbow: 'rara',
+  chainsaw: 'rara',
+  smg: 'rara',
+  flamethrower: 'mitica',
+  scythe: 'mitica',
+  hammer: 'mitica',
+  minigun: 'mitica',
+  plasma: 'mitica',
+};
+
+// Ferramentas que podem sair do baú dourado: só as raras e míticas.
+const CHEST_POOL = Object.keys(TOOL_RARITY).filter((id) => TOOL_RARITY[id] !== 'comum');
+
+const CHEST_COINS_REWARD = 25;
+
+// Personagens (skins): cada um vem com uma ferramenta inicial.
 const SHOP_CHARACTERS = {
   survivor: 0,
   runner: 120,
@@ -76,13 +135,48 @@ const SHOP_CHARACTERS = {
   tank: 220,
 };
 
+const CHARACTER_STARTER = {
+  survivor: 'knife',
+  runner: 'machete',
+  medic: 'bat',
+  brute: 'axe',
+  thief: 'spear',
+  tank: 'katana',
+};
+
 const POTION_PRICE = 10;
 const STARTING_TOOL = 'knife';
 const STARTING_CHARACTER = 'survivor';
 const SESSION_DAYS = 30;
 
+// Conquistas: uma a cada 10 dias sobrevividos e por zumbis mortos.
+const DAY_STEP = 10;
+const MAX_DAY_ACHIEVEMENT = 100;
+const KILL_TIERS = [10, 50, 100, 250, 500, 1000, 2500];
+
+const ACHIEVEMENTS = [
+  ...Array.from({ length: MAX_DAY_ACHIEVEMENT / DAY_STEP }, (_, index) => {
+    const day = (index + 1) * DAY_STEP;
+    return {
+      id: `day_${day}`,
+      kind: 'day',
+      target: day,
+      title: `DIA ${day}`,
+      desc: `Sobreviva até o dia ${day}.`,
+    };
+  }),
+  ...KILL_TIERS.map((kills) => ({
+    id: `kills_${kills}`,
+    kind: 'kills',
+    target: kills,
+    title: `${kills} ZUMBIS`,
+    desc: `Mate ${kills} zumbis no total.`,
+  })),
+];
+
 const namePattern = /^[A-Za-z0-9_]{3,16}$/;
-const passwordPattern = /^(?=.*[0-9])[A-Za-z0-9]{4,8}$/;
+// Senha: no mínimo 8 caracteres, apenas letras/números, com pelo menos 1 número.
+const passwordPattern = /^(?=.*[0-9])[A-Za-z0-9]{8,64}$/;
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -117,6 +211,101 @@ function charactersOf(playerId) {
     .map((row) => row.character_id);
 }
 
+function inventoryOf(playerId) {
+  return db
+    .prepare(
+      `SELECT kind, item_id AS itemId, quantity, acquired_at AS acquiredAt
+         FROM player_items
+        WHERE player_id = ?
+        ORDER BY acquired_at, item_id`
+    )
+    .all(playerId);
+}
+
+// Registra (ou soma) um item no inventário do jogador.
+function addItem(playerId, kind, itemId, quantity = 1) {
+  db.prepare(
+    `INSERT INTO player_items (player_id, kind, item_id, quantity, acquired_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (player_id, kind, item_id)
+     DO UPDATE SET quantity = quantity + excluded.quantity`
+  ).run(playerId, kind, itemId, quantity, now());
+}
+
+// Dá a ferramenta inicial de uma skin, se o jogador ainda não tiver.
+function grantTool(playerId, toolId, stamp = now()) {
+  const owned = db
+    .prepare('SELECT 1 FROM player_tools WHERE player_id = ? AND tool_id = ?')
+    .get(playerId, toolId);
+  if (owned) return false;
+
+  db.prepare('INSERT INTO player_tools (player_id, tool_id, acquired_at) VALUES (?, ?, ?)').run(
+    playerId,
+    toolId,
+    stamp
+  );
+  addItem(playerId, 'tool', toolId);
+  return true;
+}
+
+function playerTotals(playerId) {
+  return db.prepare('SELECT best_day, total_kills FROM players WHERE id = ?').get(playerId);
+}
+
+function achievementsOf(playerId) {
+  const totals = playerTotals(playerId) || { best_day: 1, total_kills: 0 };
+  const unlocked = new Map(
+    db
+      .prepare('SELECT achievement_id, unlocked_at FROM player_achievements WHERE player_id = ?')
+      .all(playerId)
+      .map((row) => [row.achievement_id, row.unlocked_at])
+  );
+
+  return ACHIEVEMENTS.map((achievement) => {
+    const current = achievement.kind === 'day' ? totals.best_day : totals.total_kills;
+    return {
+      id: achievement.id,
+      kind: achievement.kind,
+      title: achievement.title,
+      desc: achievement.desc,
+      target: achievement.target,
+      current: Math.min(current, achievement.target),
+      unlocked: unlocked.has(achievement.id),
+      unlockedAt: unlocked.get(achievement.id) || null,
+    };
+  });
+}
+
+// Libera as conquistas que o jogador acabou de atingir e devolve as novas.
+function syncAchievements(playerId) {
+  const totals = playerTotals(playerId);
+  if (!totals) return [];
+
+  const unlocked = new Set(
+    db
+      .prepare('SELECT achievement_id FROM player_achievements WHERE player_id = ?')
+      .all(playerId)
+      .map((row) => row.achievement_id)
+  );
+
+  const fresh = [];
+  const stamp = now();
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO player_achievements (player_id, achievement_id, unlocked_at) VALUES (?, ?, ?)'
+  );
+
+  for (const achievement of ACHIEVEMENTS) {
+    if (unlocked.has(achievement.id)) continue;
+    const current = achievement.kind === 'day' ? totals.best_day : totals.total_kills;
+    if (current < achievement.target) continue;
+
+    insert.run(playerId, achievement.id, stamp);
+    fresh.push({ ...achievement });
+  }
+
+  return fresh;
+}
+
 function toPublicPlayer(row) {
   return {
     id: row.id,
@@ -149,6 +338,7 @@ function shopCatalog(playerId) {
       price,
       owned: ownedCharacters.has(id),
       equipped: (row?.character_id || STARTING_CHARACTER) === id,
+      starterTool: CHARACTER_STARTER[id] || STARTING_TOOL,
     })),
   };
 }
@@ -163,7 +353,9 @@ const store = {
 
   validatePassword(password) {
     if (typeof password !== 'string') return 'INFORME UMA SENHA.';
-    if (password.length < 4 || password.length > 8) return 'A SENHA DEVE TER DE 4 A 8 CARACTERES.';
+    if (password.length < 8 || password.length > 64) {
+      return 'A SENHA DEVE TER NO MÍNIMO 8 CARACTERES.';
+    }
     if (!passwordPattern.test(password)) {
       return 'A SENHA DEVE CONTER APENAS LETRAS/NÚMEROS E PELO MENOS 1 NÚMERO.';
     }
@@ -195,6 +387,8 @@ const store = {
       db.prepare(
         'INSERT INTO player_characters (player_id, character_id, acquired_at) VALUES (?, ?, ?)'
       ).run(playerId, STARTING_CHARACTER, stamp);
+      addItem(playerId, 'tool', STARTING_TOOL);
+      addItem(playerId, 'character', STARTING_CHARACTER);
 
       db.exec('COMMIT');
       return this.getPlayer(playerId);
@@ -293,6 +487,7 @@ const store = {
       db.prepare(
         'INSERT INTO player_tools (player_id, tool_id, acquired_at) VALUES (?, ?, ?)'
       ).run(playerId, toolId, now());
+      addItem(playerId, 'tool', toolId);
       db.exec('COMMIT');
     } catch (error) {
       db.exec('ROLLBACK');
@@ -315,6 +510,7 @@ const store = {
     db.prepare(
       'UPDATE players SET coins = coins - ?, potions = potions + 1, updated_at = ? WHERE id = ?'
     ).run(POTION_PRICE, now(), playerId);
+    addItem(playerId, 'potion', 'tool_potion');
 
     return { player: this.getPlayer(playerId) };
   },
@@ -330,6 +526,9 @@ const store = {
     if (!row) return { error: 'JOGADOR NÃO ENCONTRADO.' };
     if (row.coins < price) return { error: 'MOEDAS INSUFICIENTES.' };
 
+    const starterTool = CHARACTER_STARTER[characterId] || STARTING_TOOL;
+    let grantedStarter = false;
+
     db.exec('BEGIN IMMEDIATE');
     try {
       db.prepare('UPDATE players SET coins = coins - ?, updated_at = ? WHERE id = ?').run(
@@ -340,13 +539,15 @@ const store = {
       db.prepare(
         'INSERT INTO player_characters (player_id, character_id, acquired_at) VALUES (?, ?, ?)'
       ).run(playerId, characterId, now());
+      addItem(playerId, 'character', characterId);
+      grantedStarter = grantTool(playerId, starterTool);
       db.exec('COMMIT');
     } catch (error) {
       db.exec('ROLLBACK');
       throw error;
     }
 
-    return { player: this.getPlayer(playerId) };
+    return { player: this.getPlayer(playerId), starterTool, grantedStarter };
   },
 
   selectCharacter(playerId, characterId) {
@@ -364,9 +565,62 @@ const store = {
     return { player: this.getPlayer(playerId) };
   },
 
+  // Abre o baú dourado do dia. O servidor escolhe a ferramenta, nunca o cliente.
+  openChest(playerId, day) {
+    const safeDay = Math.floor(Number(day) || 0);
+    if (safeDay < 3 || safeDay % 2 !== 1) {
+      return { error: 'NÃO HÁ BAÚ PARA ABRIR NESTE DIA.' };
+    }
+
+    const row = db.prepare('SELECT coins FROM players WHERE id = ?').get(playerId);
+    if (!row) return { error: 'JOGADOR NÃO ENCONTRADO.' };
+
+    // Cada dia de baú só rende uma recompensa por conta (evita farmar o baú).
+    const already = db
+      .prepare('SELECT tool_id FROM player_chests WHERE player_id = ? AND day = ?')
+      .get(playerId, safeDay);
+    if (already) {
+      return { alreadyOpened: true, toolId: already.tool_id, coins: 0 };
+    }
+
+    const owned = new Set(toolsOf(playerId));
+    const pool = CHEST_POOL.filter((id) => !owned.has(id));
+
+    if (pool.length === 0) {
+      const stamp = now();
+      db.prepare(
+        'UPDATE players SET coins = coins + ?, updated_at = ? WHERE id = ?'
+      ).run(CHEST_COINS_REWARD, stamp, playerId);
+      db.prepare(
+        'INSERT INTO player_chests (player_id, day, tool_id, opened_at) VALUES (?, ?, ?, ?)'
+      ).run(playerId, safeDay, 'coins', stamp);
+      return { toolId: null, coins: CHEST_COINS_REWARD };
+    }
+
+    const toolId = pool[Math.floor(Math.random() * pool.length)];
+
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      grantTool(playerId, toolId);
+      db.prepare(
+        'INSERT INTO player_chests (player_id, day, tool_id, opened_at) VALUES (?, ?, ?, ?)'
+      ).run(playerId, safeDay, toolId, now());
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+
+    return { toolId, coins: 0 };
+  },
+
   shopCatalog,
+  inventoryOf,
+  achievementsOf,
+  syncAchievements,
   SHOP_TOOLS,
   SHOP_CHARACTERS,
+  CHARACTER_STARTER,
   POTION_PRICE,
 };
 

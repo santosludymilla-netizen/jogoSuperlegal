@@ -110,7 +110,53 @@ export const TOOLS = {
     },
   },
 
-  // Ferramentas que só aparecem nas ofertas a cada 2 dias.
+  katana: {
+    name: 'KATANA',
+    rarity: 'rara',
+    damage: 18,
+    cooldown: 0.3,
+    swing: 0.16,
+    range: 40,
+    closeRange: 16,
+    arc: 1.7,
+    knock: 95,
+    width: 2,
+    style: 'melee',
+  },
+  minigun: {
+    name: 'MINIGUN',
+    rarity: 'mitica',
+    damage: 16,
+    cooldown: 0.09,
+    swing: 0.06,
+    range: 105,
+    closeRange: 6,
+    arc: 0.18,
+    knock: 14,
+    width: 1,
+    maxTargets: 1,
+    style: 'shot',
+    moveMult: 0.75,
+    drawback: 'MUITO PESADA: -25% VELOCIDADE',
+  },
+  plasma: {
+    name: 'CANHÃO DE PLASMA',
+    rarity: 'mitica',
+    damage: 60,
+    cooldown: 1.05,
+    swing: 0.12,
+    range: 145,
+    closeRange: 8,
+    arc: 0.22,
+    knock: 70,
+    width: 1,
+    maxTargets: 1,
+    style: 'shot',
+    drawback: 'RECARGA LENTA: 1,05 s',
+    chestOnly: true,
+  },
+
+  // Ferramentas que só aparecem nas ofertas/baú.
   // Todas são mais fortes, mas carregam uma desvantagem.
   chainsaw: {
     name: 'MOTOSSERRA',
@@ -194,13 +240,14 @@ export const TOOLS = {
   },
 };
 
-// Ferramentas que podem aparecer nas ofertas de meio de partida (a cada 2 dias).
-export const OFFER_POOL = ['chainsaw', 'crossbow', 'scythe', 'smg', 'hammer'];
+// Ferramentas que o baú dourado pode entregar (só raras e míticas).
+export const CHEST_POOL = Object.keys(TOOLS).filter((id) => TOOLS[id].rarity !== 'comum');
 
 export const CHARACTERS = {
   survivor: {
     name: 'SOBREVIVENTE',
     perk: 'EQUILIBRADO: SEM BÔNUS',
+    starterTool: 'knife',
     hp: 0,
     speed: 1,
     damage: 1,
@@ -211,6 +258,7 @@ export const CHARACTERS = {
   runner: {
     name: 'CORREDOR',
     perk: '+15% DE VELOCIDADE',
+    starterTool: 'machete',
     hp: 0,
     speed: 1.15,
     damage: 1,
@@ -221,6 +269,7 @@ export const CHARACTERS = {
   medic: {
     name: 'MÉDICO',
     perk: '+40 VIDA E +1 RESISTÊNCIA',
+    starterTool: 'bat',
     hp: 40,
     speed: 1,
     damage: 1,
@@ -231,6 +280,7 @@ export const CHARACTERS = {
   brute: {
     name: 'BRUTAMONTES',
     perk: '+20 VIDA E +12% DANO, MAS -5% VELOCIDADE',
+    starterTool: 'axe',
     hp: 20,
     speed: 0.95,
     damage: 1.12,
@@ -241,6 +291,7 @@ export const CHARACTERS = {
   thief: {
     name: 'LADRÃO',
     perk: '+50% MOEDAS, MAS -10 VIDA E -5% DANO',
+    starterTool: 'spear',
     hp: -10,
     speed: 1.05,
     damage: 0.95,
@@ -251,6 +302,7 @@ export const CHARACTERS = {
   tank: {
     name: 'TANQUE',
     perk: '+3 RESISTÊNCIA, MAS -10% VELOCIDADE',
+    starterTool: 'katana',
     hp: 0,
     speed: 0.9,
     damage: 1,
@@ -265,13 +317,16 @@ export const TOOL_ORDER = [
   'axe',
   'bat',
   'machete',
+  'katana',
   'spear',
   'gun',
   'flamethrower',
+  'minigun',
+  'plasma',
 ];
 
 // Ferramentas iniciais compráveis na loja, na ordem exibida.
-export const SHOP_TOOL_ORDER = ['axe', 'bat', 'machete'];
+export const SHOP_TOOL_ORDER = ['axe', 'bat', 'machete', 'katana', 'minigun'];
 
 export function getToolChance(toolId, bestDay) {
   const tool = TOOLS[toolId];
@@ -280,20 +335,13 @@ export function getToolChance(toolId, bestDay) {
   return tool.chance ? tool.chance(bestDay) : 1;
 }
 
-export function rollOffers(currentToolId) {
-  const pool = OFFER_POOL.filter((id) => id !== currentToolId);
-  const picks = [];
-
-  while (picks.length < 2 && pool.length > 0) {
-    picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  }
-
-  return picks;
-}
-
 const BASE_DAMAGE_PER_NIGHT = 4;
 const RESISTANCE_PER_NIGHT = 1;
 const BOSS_EVERY = 10;
+
+// Cada dia tem 30 segundos de luz: tempo de se curar e pegar o baú.
+const DAY_SECONDS = 30;
+const CHEST_EVERY = 2;
 
 const BASE_ZOMBIE_HP = 30;
 const BASE_ZOMBIE_DAMAGE = 10;
@@ -559,6 +607,9 @@ export class Game {
     this.bossSpawned = false;
     this.bossNight = false;
     this.shocks = [];
+    this.chest = null;
+    this.phase = 'day';
+    this.dayTimer = DAY_SECONDS;
 
     this.zombies = [];
     this.particles = [];
@@ -597,7 +648,7 @@ export class Game {
     this.active = true;
     this.mouse.down = false;
 
-    this.startNight();
+    this.beginDay();
     this.setTip('TUTORIAL: WASD MOVER  -  MOUSE ATACAR', 5);
   }
 
@@ -637,7 +688,37 @@ export class Game {
     this.tipUntil = this.time + seconds;
   }
 
+  // Dia: 30 segundos de luz, vida regenerando e o baú dourado no chão.
+  beginDay() {
+    this.phase = 'day';
+    this.dayTimer = DAY_SECONDS;
+    this.killed = 0;
+    this.spawned = 0;
+    this.spawnTimer = 0;
+    this.bossSpawned = false;
+    this.boss = null;
+    this.bossNight = this.day % BOSS_EVERY === 0;
+    this.total = 2 * this.day - 1 + (this.bossNight ? 1 : 0);
+    this.zombies = [];
+    this.chest = null;
+
+    // A cada 2 dias (dia 3, 5, 7...) nasce um baú dourado no chão.
+    if (this.day >= 3 && this.day % CHEST_EVERY === 1) {
+      this.chest = {
+        x: this.W * (0.18 + Math.random() * 0.64),
+        y: this.H * (0.22 + Math.random() * 0.56),
+        t: 0,
+        taken: false,
+      };
+      this.setTip('BAÚ DOURADO NO CHÃO  -  PISE NELE PARA ABRIR', 4);
+    } else {
+      this.setTip(`DIA ${this.day}  -  ${DAY_SECONDS}s DE LUZ PARA SE CURAR`, 3);
+    }
+  }
+
   startNight() {
+    this.phase = 'night';
+    this.dayTimer = 0;
     this.killed = 0;
     this.spawned = 0;
     this.spawnTimer = 0.6;
@@ -648,6 +729,61 @@ export class Game {
 
     if (this.bossNight) {
       this.setTip(`NOITE DO CHEFE  -  DIA ${this.day}`, 3.2);
+    } else {
+      this.setTip(`NOITE ${this.day}  -  ${this.total} ZUMBIS`, 2.6);
+    }
+  }
+
+  // Recompensa vem do servidor (que decide a ferramenta); se falhar, o cliente sorteia.
+  applyChestReward(reward = {}) {
+    const toolId = reward.toolId;
+    if (toolId && TOOLS[toolId]) {
+      this.equipTool(toolId);
+      this.setTip(
+        `BAÚ: ${TOOLS[toolId].name} (${RARITIES[TOOLS[toolId].rarity].label})`,
+        4.5
+      );
+      return;
+    }
+
+    if (reward.coins > 0) {
+      this.coinsEarned += reward.coins;
+      this.cb.onCoins(reward.coins);
+      this.setTip(`BAÚ VAZIO  -  +$${reward.coins}`, 3.5);
+      return;
+    }
+
+    this.setTip('BAÚ VAZIO.', 2.4);
+  }
+
+  randomChestTool() {
+    const options = CHEST_POOL.filter((id) => id !== this.toolId);
+    return options[Math.floor(Math.random() * options.length)];
+  }
+
+  // Pisa no baú: o servidor decide a recompensa; sem resposta, sorteia local.
+  openGroundChest() {
+    if (!this.chest || this.chest.taken) return;
+
+    this.chest.taken = true;
+    this.chest = null;
+
+    const day = this.day;
+    const result = this.cb.onChestOpen ? this.cb.onChestOpen(day) : null;
+
+    const finish = (reward) => {
+      if (!this.active) return;
+      if (reward && (reward.toolId || reward.coins > 0)) {
+        this.applyChestReward(reward);
+      } else {
+        this.applyChestReward({ toolId: this.randomChestTool() });
+      }
+    };
+
+    if (result && typeof result.then === 'function') {
+      result.then(finish).catch(() => finish(null));
+    } else {
+      finish(result);
     }
   }
 
@@ -907,35 +1043,14 @@ export class Game {
     this.cb.onCoins(nightCoins);
     this.cb.onNightEnd(this.day);
 
-    // A cada 2 dias (dia 3, 5, 7...) duas ferramentas melhores são oferecidas.
-    if (this.day >= 3 && this.day % 2 === 1) {
-      this.offers = rollOffers(this.toolId);
-      this.offerOpen = true;
-      this.tip = '';
-      this.mouse.down = false;
-      this.cb.onToolOffer(this.offers);
-      return;
-    }
+    this.beginDay();
 
-    this.startNight();
-    this.setTip(
-      `NOITE SOBREVIDA  +$${nightCoins}  +${BASE_DAMAGE_PER_NIGHT} DANO  +${RESISTANCE_PER_NIGHT} RES  -  DIA ${this.day}`,
-      3.2
-    );
-  }
-
-  resolveOffer(toolId) {
-    if (!this.offerOpen) return;
-
-    this.offerOpen = false;
-    this.offers = null;
-    this.startNight();
-
-    if (toolId && TOOLS[toolId]) {
-      this.equipTool(toolId);
-      this.setTip(`NOVA FERRAMENTA: ${this.tool.name}  -  ${this.tool.drawback || ''}`, 4);
-    } else {
-      this.setTip(`OFERTA RECUSADA  -  DIA ${this.day}`, 2.6);
+    // Sem baú, o aviso do dia mostra o que a noite rendeu.
+    if (!this.chest) {
+      this.setTip(
+        `DIA ${this.day}  +$${nightCoins}  +${BASE_DAMAGE_PER_NIGHT} DANO  +${RESISTANCE_PER_NIGHT} RES  -  ${DAY_SECONDS}s DE CURA`,
+        3.4
+      );
     }
   }
 
@@ -1148,13 +1263,32 @@ export class Game {
     const maxAlive = Math.min(4 + this.day, 12);
     const normalTotal = this.total - (this.bossNight ? 1 : 0);
 
-    if (this.spawned < normalTotal && this.zombies.length < maxAlive) {
+    if (this.phase === 'day') {
+      this.dayTimer = Math.max(0, this.dayTimer - dt);
+
+      // Durante o dia a vida se recupera sozinha.
+      if (this.hp > 0 && this.hp < this.maxHp) {
+        this.hp = Math.min(this.maxHp, this.hp + (this.maxHp / DAY_SECONDS) * dt);
+      }
+
+      if (this.chest) {
+        this.chest.t += dt;
+        const reach = player.radius + 14;
+        if (Math.hypot(player.x - this.chest.x, player.y - this.chest.y) <= reach) {
+          this.openGroundChest();
+        }
+      }
+
+      if (this.dayTimer <= 0) this.startNight();
+    }
+
+    if (this.phase === 'night' && this.spawned < normalTotal && this.zombies.length < maxAlive) {
       this.spawnTimer -= dt;
       if (this.spawnTimer <= 0) {
         this.spawnZombie();
         this.spawnTimer = Math.max(0.4, 1.25 - this.day * 0.04);
       }
-    } else if (this.bossNight && !this.bossSpawned) {
+    } else if (this.phase === 'night' && this.bossNight && !this.bossSpawned) {
       this.spawnBoss();
     }
 
@@ -1252,6 +1386,9 @@ export class Game {
         damage: this.damage,
         resistance: this.resistance,
         tip: this.tip,
+        phase: this.phase,
+        dayLeft: this.phase === 'day' ? this.dayTimer : 0,
+        chest: Boolean(this.chest),
         boss: this.boss
           ? { name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp }
           : null,
@@ -1389,6 +1526,15 @@ export class Game {
         break;
       case 'hammer':
         this.drawHammer();
+        break;
+      case 'katana':
+        this.drawKatana();
+        break;
+      case 'minigun':
+        this.drawMinigun();
+        break;
+      case 'plasma':
+        this.drawPlasma();
         break;
       default:
         this.drawKnife();
@@ -1640,6 +1786,127 @@ export class Game {
     ctx.fillRect(12, -3, 1, 6);
   }
 
+  drawChest() {
+    if (!this.chest) return;
+
+    const { ctx } = this;
+    const { x, y } = this.chest;
+    const pulse = 0.5 + 0.5 * Math.sin(this.chest.t * 5);
+
+    const glow = ctx.createRadialGradient(x, y - 4, 2, x, y - 4, 26 + pulse * 8);
+    glow.addColorStop(0, `rgba(255, 176, 0, ${0.28 + pulse * 0.16})`);
+    glow.addColorStop(1, 'rgba(255, 176, 0, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 36, y - 40, 72, 72);
+
+    const left = Math.round(x) - 7;
+    const top = Math.round(y) - 10;
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(left - 1, top + 1, 16, 12);
+
+    ctx.fillStyle = '#8a5a00';
+    ctx.fillRect(left, top + 3, 14, 8);
+
+    ctx.fillStyle = '#ffb000';
+    ctx.fillRect(left, top + 3, 14, 2);
+    ctx.fillRect(left, top + 7, 1, 4);
+    ctx.fillRect(left + 13, top + 7, 1, 4);
+
+    ctx.fillStyle = '#ffd970';
+    ctx.fillRect(left + 1, top + 4, 12, 1);
+    ctx.fillRect(left + 6, top + 3, 2, 9);
+
+    ctx.fillStyle = '#fff3b0';
+    ctx.fillRect(left + 6, top + 6, 2, 2);
+
+    // Brilho piscando em volta do baú.
+    ctx.globalAlpha = 0.35 + pulse * 0.45;
+    ctx.fillStyle = '#ffe066';
+    const sparkles = [
+      [left - 3, top - 2],
+      [left + 15, top + 1],
+      [left + 4, top + 13],
+      [left + 11, top - 5],
+    ];
+    sparkles.forEach(([sx, sy], index) => {
+      if (Math.sin(this.chest.t * 4 + index) > 0.2) ctx.fillRect(sx, sy, 1, 1);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  drawKatana() {
+    const { ctx } = this;
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(-5, -2, 18, 4);
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-4, -1, 4, 2);
+
+    ctx.fillStyle = '#ffb000';
+    ctx.fillRect(0, -3, 2, 6);
+
+    ctx.fillStyle = '#d8d8d0';
+    ctx.fillRect(2, -1, 10, 2);
+    ctx.fillStyle = '#f7f7ee';
+    ctx.fillRect(2, -1, 9, 1);
+    ctx.fillStyle = '#9aa38f';
+    ctx.fillRect(11, -1, 1, 1);
+
+    ctx.fillStyle = '#ffb000';
+    ctx.fillRect(9, 0, 1, 1);
+  }
+
+  drawMinigun() {
+    const { ctx } = this;
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(-4, -5, 18, 10);
+
+    ctx.fillStyle = '#2f3b34';
+    ctx.fillRect(-3, -2, 9, 5);
+    ctx.fillStyle = '#1e4a26';
+    ctx.fillRect(-3, 3, 4, 3);
+
+    ctx.fillStyle = '#d8d8d0';
+    ctx.fillRect(6, -3, 7, 2);
+    ctx.fillRect(6, -1, 7, 1);
+    ctx.fillRect(6, 1, 7, 2);
+
+    ctx.fillStyle = '#ffb000';
+    ctx.fillRect(5, -4, 2, 1);
+    ctx.fillRect(5, 3, 2, 1);
+    ctx.fillStyle = '#ff2e88';
+    ctx.fillRect(-1, -3, 2, 1);
+  }
+
+  drawPlasma() {
+    const { ctx } = this;
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(-4, -5, 20, 10);
+
+    ctx.fillStyle = '#2a1e4a';
+    ctx.fillRect(-3, -3, 10, 6);
+    ctx.fillStyle = '#1a1030';
+    ctx.fillRect(-3, 2, 5, 3);
+
+    ctx.fillStyle = '#39ff14';
+    ctx.fillRect(1, -2, 4, 4);
+    ctx.fillStyle = '#b6ff9a';
+    ctx.fillRect(2, -1, 2, 2);
+
+    ctx.fillStyle = '#d8d8d0';
+    ctx.fillRect(7, -2, 7, 4);
+    ctx.fillStyle = '#ff2e88';
+    ctx.fillRect(7, -2, 1, 4);
+    ctx.fillStyle = '#39ff14';
+    ctx.fillRect(13, -1, 2, 2);
+    ctx.fillStyle = '#b6ff9a';
+    ctx.fillRect(14, 0, 1, 1);
+  }
+
   drawSwings() {
     const { ctx } = this;
     const player = this.player;
@@ -1835,6 +2102,8 @@ export class Game {
 
     ctx.drawImage(this.bg, 0, 0);
     if (this.decals) ctx.drawImage(this.decals, 0, 0);
+
+    this.drawChest();
 
     const zombies = [...this.zombies].sort((a, b) => a.y - b.y);
     for (const zombie of zombies) this.drawZombie(zombie);

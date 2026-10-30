@@ -8,6 +8,8 @@ import {
   logout,
   clearToken,
   reportRun,
+  openChest,
+  fetchInventory,
   buyTool,
   buyPotion,
   buyCharacter,
@@ -33,11 +35,13 @@ const ctx = canvas.getContext('2d');
 const menu = document.getElementById('menu');
 const menuCoins = document.getElementById('menu-coins');
 const menuCoinsValue = document.getElementById('menu-coins-value');
+const menuTopLeft = document.getElementById('menu-top-left');
 const menuPlayer = document.getElementById('menu-player');
 const menuPlayerName = document.getElementById('menu-player-name');
 const menuPlayerPerk = document.getElementById('menu-player-perk');
 const btnPlay = document.getElementById('btn-play');
 const btnShop = document.getElementById('btn-shop');
+const btnInventory = document.getElementById('btn-inventory');
 const btnLogout = document.getElementById('btn-logout');
 
 const auth = document.getElementById('auth');
@@ -50,11 +54,13 @@ const authTabs = [...document.querySelectorAll('.auth-tab')];
 
 const hud = document.getElementById('hud');
 const hudDay = document.getElementById('hud-day');
+const hudPhase = document.getElementById('hud-phase');
 const hudZombies = document.getElementById('hud-zombies');
 const hudDamage = document.getElementById('hud-damage');
 const hudResist = document.getElementById('hud-resist');
 const hudCoins = document.getElementById('hud-coins');
 const hudTip = document.getElementById('hud-tip');
+const hudChest = document.getElementById('hud-chest');
 const healthFill = document.getElementById('health-fill');
 const healthText = document.getElementById('health-text');
 const bossBar = document.getElementById('boss-bar');
@@ -65,15 +71,16 @@ const toolSelect = document.getElementById('tool-select');
 const toolMeta = document.getElementById('tool-meta');
 const toolGrid = document.getElementById('tool-grid');
 
-const toolOffer = document.getElementById('tool-offer');
-const offerMeta = document.getElementById('offer-meta');
-const offerGrid = document.getElementById('offer-grid');
-const offerSkip = document.getElementById('offer-skip');
-
 const shopPanel = document.getElementById('shop');
 const shopCoinsValue = document.getElementById('shop-coins-value');
 const shopItems = document.getElementById('shop-items');
 const shopBack = document.getElementById('shop-back');
+
+const inventoryPanel = document.getElementById('inventory');
+const inventoryCoins = document.getElementById('inventory-coins');
+const inventoryItems = document.getElementById('inventory-items');
+const inventoryAchievements = document.getElementById('inventory-achievements');
+const inventoryBack = document.getElementById('inventory-back');
 
 const gameover = document.getElementById('gameover');
 const gameoverInfo = document.getElementById('gameover-info');
@@ -175,6 +182,33 @@ const TOOL_ICONS = {
       <rect x="5" y="3" width="2" height="3" fill="#d8d8d0"/>
     </svg>
   `,
+  katana: `
+    <svg class="tool-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+      <path fill="#d8d8d0" d="M13 2h2v2h-2v2h-2v2H9v2H7v2H4v-2h2V8h2V6h2V4h3z"/>
+      <rect x="2" y="12" width="4" height="2" fill="#1a1a1a"/>
+      <rect x="5" y="9" width="3" height="3" fill="#ffb000"/>
+    </svg>
+  `,
+  minigun: `
+    <svg class="tool-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="1" y="6" width="8" height="5" fill="#2f3b34"/>
+      <rect x="2" y="10" width="3" height="4" fill="#1e4a26"/>
+      <rect x="9" y="5" width="6" height="2" fill="#d8d8d0"/>
+      <rect x="9" y="8" width="6" height="1" fill="#d8d8d0"/>
+      <rect x="9" y="10" width="6" height="2" fill="#d8d8d0"/>
+      <rect x="1" y="5" width="2" height="1" fill="#ffb000"/>
+    </svg>
+  `,
+  plasma: `
+    <svg class="tool-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="1" y="6" width="8" height="5" fill="#2a1e4a"/>
+      <rect x="2" y="10" width="3" height="4" fill="#1a1030"/>
+      <rect x="9" y="6" width="5" height="4" fill="#d8d8d0"/>
+      <rect x="14" y="7" width="2" height="2" fill="#39ff14"/>
+      <rect x="3" y="7" width="3" height="3" fill="#39ff14"/>
+      <rect x="4" y="8" width="1" height="1" fill="#b6ff9a"/>
+    </svg>
+  `,
 };
 
 const CHARACTER_ICON = (id) => {
@@ -215,8 +249,8 @@ const game = new Game(canvas, ctx, {
   onNightEnd() {
     queueSync();
   },
-  onToolOffer(offers) {
-    openToolOffer(offers);
+  onChestOpen(day) {
+    return openChestSafely(day);
   },
   onHud(info) {
     updateHud(info);
@@ -271,8 +305,14 @@ async function sendSync() {
   syncBusy = true;
 
   try {
-    await reportRun(payload);
+    const data = await reportRun(payload);
     updateCoins();
+
+    if (Array.isArray(data.newAchievements) && data.newAchievements.length > 0) {
+      data.newAchievements.forEach((achievement, index) => {
+        setTimeout(() => showToast(`CONQUISTA: ${achievement.title}`), index * 700);
+      });
+    }
   } catch (error) {
     runCoins += payload.coins;
     runKills += payload.kills;
@@ -288,6 +328,8 @@ async function sendSync() {
 
 const hudCache = {
   day: null,
+  phase: null,
+  chest: null,
   zombies: null,
   hp: null,
   damage: null,
@@ -312,6 +354,7 @@ function updateCoins() {
   menuCoinsValue.textContent = save.coins;
   hudCoins.textContent = save.coins;
   shopCoinsValue.textContent = save.coins;
+  inventoryCoins.textContent = save.coins;
 }
 
 function updatePlayerBadge() {
@@ -325,6 +368,18 @@ function updateHud(info) {
   if (hudCache.day !== info.day) {
     hudDay.textContent = info.day;
     hudCache.day = info.day;
+  }
+
+  const phase = info.phase === 'day' ? `DIA ${Math.ceil(info.dayLeft)}s` : 'NOITE';
+  if (hudCache.phase !== phase) {
+    hudPhase.textContent = phase;
+    hudPhase.classList.toggle('is-night', info.phase !== 'day');
+    hudCache.phase = phase;
+  }
+
+  if (hudCache.chest !== info.chest) {
+    hudChest.hidden = !info.chest;
+    hudCache.chest = info.chest;
   }
 
   const zombies = `${info.killed}/${info.total}`;
@@ -378,11 +433,12 @@ function showAuth(mode = 'login') {
 
   menu.classList.add('is-hidden');
   menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
   menuPlayer.hidden = true;
   blood.hidden = true;
   hud.hidden = true;
   toolSelect.hidden = true;
-  toolOffer.hidden = true;
+  inventoryPanel.hidden = true;
   shopPanel.hidden = true;
   gameover.hidden = true;
   auth.hidden = false;
@@ -405,7 +461,9 @@ function showMenu() {
   auth.hidden = true;
   menu.classList.remove('is-hidden');
   menuCoins.hidden = false;
+  menuTopLeft.hidden = false;
   menuPlayer.hidden = false;
+  inventoryPanel.hidden = true;
   blood.hidden = false;
   updatePlayerBadge();
 }
@@ -414,7 +472,9 @@ function openToolSelect() {
   state = 'tool';
   menu.classList.add('is-hidden');
   menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
   menuPlayer.hidden = true;
+  inventoryPanel.hidden = true;
   blood.hidden = true;
   rollToolOffers();
   renderToolSelect();
@@ -437,6 +497,12 @@ function rollToolOffers() {
     const tool = TOOLS[id];
     const owned = ownsTool(id);
 
+    // Ferramenta comprada/ganha no baú sempre pode ser escolhida (inclusive as de oferta).
+    if (owned) {
+      availableTools.add(id);
+      continue;
+    }
+
     if (tool.offerOnly) continue;
 
     if (tool.unlockDay) {
@@ -444,8 +510,6 @@ function rollToolOffers() {
       if (chance >= 1 || (chance > 0 && Math.random() < chance)) availableTools.add(id);
       continue;
     }
-
-    if (owned) availableTools.add(id);
   }
 }
 
@@ -469,9 +533,11 @@ function renderToolSelect() {
     const damage = damageOf(id);
 
     let status;
-    if (tool.unlockDay) {
+    if (owned) {
+      status = 'SUA FERRAMENTA';
+    } else if (tool.unlockDay) {
       const chance = getToolChance(id, save.bestDay);
-      if (!owned && save.bestDay < tool.unlockDay) {
+      if (save.bestDay < tool.unlockDay) {
         status = `BLOQUEADA: DIA ${tool.unlockDay}`;
       } else if (!appeared) {
         status = `NÃO APARECEU · SORTE ${Math.round(chance * 100)}%`;
@@ -501,36 +567,148 @@ function renderToolSelect() {
   }).join('');
 }
 
-function openToolOffer(offers) {
-  state = 'offer';
+// ---------- inventário ----------
 
-  offerMeta.textContent = `DIA ${game.day} · ESCOLHA UMA FERRAMENTA MELHOR (CADA UMA TEM UMA DESVANTAGEM)`;
+const ITEM_LABELS = {
+  tool: 'FERRAMENTA',
+  character: 'SKIN',
+  potion: 'CONSUMÍVEL',
+};
 
-  offerGrid.innerHTML = offers
-    .map((id) => {
-      const tool = TOOLS[id];
-      const rarity = RARITIES[tool.rarity];
+function describeItem(item) {
+  if (item.kind === 'tool') {
+    const tool = TOOLS[item.itemId];
+    return {
+      name: tool ? tool.name : item.itemId.toUpperCase(),
+      meta: tool ? `DANO ${tool.damage} · ${RARITIES[tool.rarity].label}` : 'FERRAMENTA',
+      icon: TOOL_ICONS[item.itemId] || '',
+      rarity: tool?.rarity || 'comum',
+    };
+  }
 
-      return `
-        <button class="tool tool--${tool.rarity}" type="button" data-offer="${id}">
-          <span class="tool-rarity tool-rarity--${tool.rarity}">${rarity.label}</span>
-          ${TOOL_ICONS[id]}
-          <span class="tool-name">${tool.name}</span>
-          <span class="tool-dmg">DANO <strong>${damageOf(id)}</strong> · RECARGA ${tool.cooldown.toFixed(2)}s</span>
-          <span class="tool-desc tool-desc--bad">${tool.drawback}</span>
-        </button>
-      `;
-    })
-    .join('');
+  if (item.kind === 'character') {
+    const character = CHARACTERS[item.itemId];
+    return {
+      name: character ? character.name : item.itemId.toUpperCase(),
+      meta: character ? character.perk : 'SKIN',
+      icon: character ? CHARACTER_ICON(item.itemId) : '',
+      rarity: null,
+    };
+  }
 
-  toolOffer.hidden = false;
+  if (item.kind === 'potion') {
+    return {
+      name: 'POÇÃO DE FERRAMENTA',
+      meta: `+${5 * item.quantity} DE DANO SOMADO`,
+      icon: '<span class="item-icon-glyph">+</span>',
+      rarity: null,
+    };
+  }
+
+  return {
+    name: item.itemId.toUpperCase(),
+    meta: ITEM_LABELS[item.kind] || item.kind,
+    icon: '',
+    rarity: null,
+  };
 }
 
-function closeToolOffer(toolId) {
-  toolOffer.hidden = true;
-  hudCache.tip = null;
-  game.resolveOffer(toolId);
-  state = 'playing';
+function renderInventory() {
+  inventoryCoins.textContent = save.coins;
+
+  if (!save.inventory || save.inventory.length === 0) {
+    inventoryItems.innerHTML = '<p class="inventory-empty">SEU INVENTÁRIO ESTÁ VAZIO.</p>';
+  } else {
+    inventoryItems.innerHTML = save.inventory
+      .map((item) => {
+        const info = describeItem(item);
+        const qty = item.quantity > 1 ? ` <span class="item-qty">x${item.quantity}</span>` : '';
+
+        return `
+          <div class="inventory-item ${info.rarity ? `inventory-item--${info.rarity}` : ''}">
+            ${info.icon}
+            <div class="inventory-item-body">
+              <h4>${info.name}${qty}</h4>
+              <p>${info.meta}</p>
+            </div>
+            <span class="inventory-item-kind">${ITEM_LABELS[item.kind] || item.kind.toUpperCase()}</span>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  if (!save.achievements || save.achievements.length === 0) {
+    inventoryAchievements.innerHTML =
+      '<p class="inventory-empty">NENHUMA CONQUISTA AINDA. SOBREVIVA E MATE ZUMBIS.</p>';
+  } else {
+    inventoryAchievements.innerHTML = save.achievements
+      .map((achievement) => {
+        const ratio = Math.max(0, Math.min(1, achievement.current / achievement.target));
+
+        return `
+          <div class="achievement ${achievement.unlocked ? 'is-unlocked' : ''}">
+            <div class="achievement-head">
+              <span class="achievement-title">${achievement.title}</span>
+              <span class="achievement-progress">${achievement.current}/${achievement.target}</span>
+            </div>
+            <p class="achievement-desc">${achievement.desc}</p>
+            <div class="achievement-bar"><div style="width:${ratio * 100}%"></div></div>
+            <span class="achievement-state">${achievement.unlocked ? 'DESBLOQUEADA' : 'BLOQUEADA'}</span>
+          </div>
+        `;
+      })
+      .join('');
+  }
+}
+
+async function openInventory() {
+  state = 'inventory';
+  menu.classList.add('is-hidden');
+  menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
+  menuPlayer.hidden = true;
+  blood.hidden = true;
+
+  renderInventory();
+  inventoryPanel.hidden = false;
+
+  try {
+    await fetchInventory();
+    renderInventory();
+  } catch (error) {
+    console.warn('Falha ao carregar inventário:', error.message);
+  }
+}
+
+function closeInventory() {
+  inventoryPanel.hidden = true;
+  showMenu();
+}
+
+// ---------- baú e conquistas ----------
+
+async function openChestSafely(day) {
+  try {
+    const data = await openChest(day);
+    updateCoins();
+    return data.chest || null;
+  } catch (error) {
+    console.warn('Falha ao abrir o baú:', error.message);
+    return null;
+  }
+}
+
+let toastTimer = null;
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  toast.textContent = text;
+  toast.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3600);
 }
 
 function startRun(toolId) {
@@ -538,6 +716,8 @@ function startRun(toolId) {
   blood.hidden = true;
 
   hudCache.day = null;
+  hudCache.phase = null;
+  hudCache.chest = null;
   hudCache.zombies = null;
   hudCache.hp = null;
   hudCache.damage = null;
@@ -566,6 +746,7 @@ function openShop() {
   state = 'shop';
   menu.classList.add('is-hidden');
   menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
   menuPlayer.hidden = true;
   blood.hidden = true;
   renderShop();
@@ -641,6 +822,7 @@ function renderShop() {
             </div>
           </div>
           <p class="shop-card-desc">VIDA ${100 + character.hp} · DANO x${character.damage.toFixed(2)} · VEL x${character.speed.toFixed(2)} · RES ${character.resist} · MOEDAS x${character.coins}</p>
+          <p class="shop-card-desc shop-card-starter">VEM COM: ${TOOLS[character.starterTool] ? TOOLS[character.starterTool].name : 'FACA'} (${RARITIES[TOOLS[character.starterTool]?.rarity || 'comum'].label})</p>
           ${action}
         </div>
       `;
@@ -705,10 +887,13 @@ function shopMessage(text, isError) {
 
 async function handleShopAction(action) {
   try {
+    let starterTool = null;
+
     if (action.dataset.buyTool) {
       await buyTool(action.dataset.buyTool);
     } else if (action.dataset.buyCharacter) {
-      await buyCharacter(action.dataset.buyCharacter);
+      const result = await buyCharacter(action.dataset.buyCharacter);
+      starterTool = result?.grantedStarter || null;
     } else if (action.dataset.equipCharacter) {
       await selectCharacter(action.dataset.equipCharacter);
     } else if (action.hasAttribute('data-buy-potion')) {
@@ -720,6 +905,13 @@ async function handleShopAction(action) {
     updateCoins();
     renderShop();
     updatePlayerBadge();
+
+    if (starterTool) {
+      shopMessage(
+        `SKIN COMPRADA: ${TOOLS[starterTool] ? TOOLS[starterTool].name : starterTool} ADICIONADA AO INVENTÁRIO.`,
+        false
+      );
+    }
   } catch (error) {
     shopMessage(error.message, true);
   }
@@ -749,16 +941,11 @@ toolGrid.addEventListener('click', (event) => {
   startRun(button.dataset.tool);
 });
 
-offerGrid.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-offer]');
-  if (!button) return;
-  closeToolOffer(button.dataset.offer);
-});
-
-offerSkip.addEventListener('click', () => closeToolOffer(null));
-
 btnShop.addEventListener('click', openShop);
 shopBack.addEventListener('click', closeShop);
+
+btnInventory.addEventListener('click', openInventory);
+inventoryBack.addEventListener('click', closeInventory);
 
 shopItems.addEventListener('click', (event) => {
   const action = event.target.closest('button');
@@ -790,8 +977,8 @@ authForm.addEventListener('submit', async (event) => {
     authError.textContent = 'NOME: 3 A 16 CARACTERES, APENAS LETRAS, NÚMEROS E _.';
     return;
   }
-  if (!/^(?=.*[0-9])[A-Za-z0-9]{4,8}$/.test(password)) {
-    authError.textContent = 'SENHA: 4 A 8 CARACTERES COM PELO MENOS 1 NÚMERO.';
+  if (!/^(?=.*[0-9])[A-Za-z0-9]{8,64}$/.test(password)) {
+    authError.textContent = 'SENHA: 8 A 64 CARACTERES COM PELO MENOS 1 NÚMERO.';
     return;
   }
 
@@ -828,11 +1015,11 @@ window.addEventListener('keydown', (event) => {
     showMenu();
   } else if (state === 'shop') {
     closeShop();
+  } else if (state === 'inventory') {
+    closeInventory();
   } else if (state === 'gameover') {
     gameover.hidden = true;
     showMenu();
-  } else if (state === 'offer') {
-    closeToolOffer(null);
   }
 });
 
@@ -845,10 +1032,8 @@ function frame(now) {
   const delta = lastTime ? Math.min(0.05, time - lastTime) : 0.016;
   lastTime = time;
 
-  if (state === 'menu' || state === 'tool' || state === 'shop' || state === 'auth') {
+  if (state === 'menu' || state === 'tool' || state === 'shop' || state === 'inventory' || state === 'auth') {
     scene.draw(time, delta);
-  } else if (state === 'offer') {
-    game.draw();
   } else if (state === 'playing') {
     game.update(delta);
     game.draw();
@@ -893,6 +1078,8 @@ if (new URLSearchParams(window.location.search).has('debug')) {
     openToolSelect,
     startRun,
     openShop,
+    openInventory,
+    showToast,
   };
 }
 
