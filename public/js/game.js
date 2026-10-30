@@ -711,6 +711,8 @@ export class Game {
         taken: false,
       };
       this.setTip('BAÚ DOURADO NO CHÃO  -  PISE NELE PARA ABRIR', 4);
+    } else if (this.day === 1) {
+      this.setTip(`DIA 1  -  WASD ANDA  -  MOUSE MIRA  -  SEGURE O CLIQUE PARA ATACAR`, 5);
     } else {
       this.setTip(`DIA ${this.day}  -  ${DAY_SECONDS}s DE LUZ PARA SE CURAR`, 3);
     }
@@ -729,6 +731,8 @@ export class Game {
 
     if (this.bossNight) {
       this.setTip(`NOITE DO CHEFE  -  DIA ${this.day}`, 3.2);
+    } else if (this.day === 1) {
+      this.setTip(`NOITE 1  -  MATE O ZUMBI PARA VIRAR O DIA`, 3.2);
     } else {
       this.setTip(`NOITE ${this.day}  -  ${this.total} ZUMBIS`, 2.6);
     }

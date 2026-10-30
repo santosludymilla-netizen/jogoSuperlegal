@@ -41,6 +41,7 @@ const menuPlayerName = document.getElementById('menu-player-name');
 const menuPlayerPerk = document.getElementById('menu-player-perk');
 const btnPlay = document.getElementById('btn-play');
 const btnShop = document.getElementById('btn-shop');
+const btnHelp = document.getElementById('btn-help');
 const btnInventory = document.getElementById('btn-inventory');
 const btnLogout = document.getElementById('btn-logout');
 
@@ -81,6 +82,15 @@ const inventoryCoins = document.getElementById('inventory-coins');
 const inventoryItems = document.getElementById('inventory-items');
 const inventoryAchievements = document.getElementById('inventory-achievements');
 const inventoryBack = document.getElementById('inventory-back');
+
+const tutorial = document.getElementById('tutorial');
+const tutorialStep = document.getElementById('tutorial-step');
+const tutorialTitle = document.getElementById('tutorial-title');
+const tutorialKeys = document.getElementById('tutorial-keys');
+const tutorialText = document.getElementById('tutorial-text');
+const tutorialDots = document.getElementById('tutorial-dots');
+const tutorialNext = document.getElementById('tutorial-next');
+const tutorialSkip = document.getElementById('tutorial-skip');
 
 const gameover = document.getElementById('gameover');
 const gameoverInfo = document.getElementById('gameover-info');
@@ -464,6 +474,7 @@ function showMenu() {
   menuTopLeft.hidden = false;
   menuPlayer.hidden = false;
   inventoryPanel.hidden = true;
+  tutorial.hidden = true;
   blood.hidden = false;
   updatePlayerBadge();
 }
@@ -565,6 +576,105 @@ function renderToolSelect() {
       </button>
     `;
   }).join('');
+}
+
+// ---------- tutorial ----------
+
+const TUTORIAL_KEY = 'infected.tutorialSeen';
+
+const TUTORIAL_STEPS = [
+  {
+    title: 'MOVER',
+    keys: ['W', 'A', 'S', 'D', 'SETAS'],
+    text: 'ANDE COM W A S D OU AS SETAS. O CENÁRIO É ABERTO: CIRCULE PARA NÃO FICAR CERCADO.',
+  },
+  {
+    title: 'MIRAR E ATACAR',
+    keys: ['MOUSE', 'CLIQUE ESQUERDO'],
+    text: 'A MIRA SEGUE O MOUSE. SEGURE O BOTÃO ESQUERDO PARA ATACAR SEM PARAR. CADA FERRAMENTA TEM ALCANCE, DANO E RECARGA PRÓPRIOS.',
+  },
+  {
+    title: 'DIA DE 30 SEGUNDOS',
+    keys: ['30s', '+ VIDA'],
+    text: 'CADA DIA COMEÇA COM 30 SEGUNDOS DE LUZ: NENHUM ZUMBI NASCE E SUA VIDA SE REGENERA SOZINHA. APROVEITE PARA SE POSICIONAR.',
+  },
+  {
+    title: 'A NOITE',
+    keys: ['ZUMBIS', 'SOBREVIVA'],
+    text: 'QUANDO O TEMPO ACABA, A NOITE COMEÇA E OS ZUMBIS VÊM. MATE TODOS PARA VIRAR O DIA E GANHAR +4 DE DANO E +1 DE RESISTÊNCIA.',
+  },
+  {
+    title: 'BAÚ DOURADO',
+    keys: ['DIAS 3, 5, 7...', 'PISE NELE'],
+    text: 'A CADA 2 DIAS NASCE UM BAÚ DOURADO NO CHÃO. PISE NELE DURANTE O DIA PARA GANHAR UMA FERRAMENTA RARA OU MÍTICA.',
+  },
+  {
+    title: 'PROGRESSO',
+    keys: ['$', 'LOJA', 'INVENTÁRIO'],
+    text: 'AS MOEDAS DA PARTIDA FICAM SALVAS NA CONTA. NA LOJA COMPRE FERRAMENTAS E SKINS; NO INVENTÁRIO VEJA TUDO E AS CONQUISTAS.',
+  },
+];
+
+let tutorialIndex = 0;
+let tutorialReturn = 'menu';
+
+function renderTutorial() {
+  const step = TUTORIAL_STEPS[tutorialIndex];
+
+  tutorialStep.textContent = `${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
+  tutorialTitle.textContent = step.title;
+  tutorialKeys.innerHTML = step.keys.map((key) => `<kbd>${key}</kbd>`).join('');
+  tutorialText.textContent = step.text;
+  tutorialDots.innerHTML = TUTORIAL_STEPS.map(
+    (_, index) => `<span class="${index === tutorialIndex ? 'is-active' : ''}"></span>`
+  ).join('');
+  tutorialNext.textContent = tutorialIndex === TUTORIAL_STEPS.length - 1 ? 'COMEÇAR' : 'PRÓXIMO';
+}
+
+function openTutorial(returnTo = 'menu') {
+  tutorialReturn = returnTo;
+  tutorialIndex = 0;
+  state = 'tutorial';
+
+  menu.classList.add('is-hidden');
+  menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
+  menuPlayer.hidden = true;
+  inventoryPanel.hidden = true;
+  shopPanel.hidden = true;
+  toolSelect.hidden = true;
+  blood.hidden = true;
+  if (returnTo === 'menu') hud.hidden = true;
+
+  renderTutorial();
+  tutorial.hidden = false;
+}
+
+function finishTutorial() {
+  tutorial.hidden = true;
+  try {
+    localStorage.setItem(TUTORIAL_KEY, '1');
+  } catch {
+    // navegador sem localStorage: o tutorial volta na próxima partida
+  }
+
+  if (tutorialReturn === 'playing') {
+    state = 'playing';
+    return;
+  }
+
+  hud.hidden = true;
+  showMenu();
+}
+
+function nextTutorialStep() {
+  if (tutorialIndex >= TUTORIAL_STEPS.length - 1) {
+    finishTutorial();
+    return;
+  }
+
+  tutorialIndex += 1;
+  renderTutorial();
 }
 
 // ---------- inventário ----------
@@ -740,6 +850,16 @@ function startRun(toolId) {
   });
 
   updateCoins();
+
+  // No primeiro dia, mostra o tutorial completo (só na primeira vez).
+  let tutorialDone = true;
+  try {
+    tutorialDone = Boolean(localStorage.getItem(TUTORIAL_KEY));
+  } catch {
+    tutorialDone = false;
+  }
+
+  if (!tutorialDone) openTutorial('playing');
 }
 
 function openShop() {
@@ -947,6 +1067,10 @@ shopBack.addEventListener('click', closeShop);
 btnInventory.addEventListener('click', openInventory);
 inventoryBack.addEventListener('click', closeInventory);
 
+btnHelp.addEventListener('click', () => openTutorial('menu'));
+tutorialNext.addEventListener('click', nextTutorialStep);
+tutorialSkip.addEventListener('click', finishTutorial);
+
 shopItems.addEventListener('click', (event) => {
   const action = event.target.closest('button');
   if (!action || action.disabled) return;
@@ -1008,6 +1132,18 @@ gameoverMenu.addEventListener('click', () => {
 });
 
 window.addEventListener('keydown', (event) => {
+  if (state === 'tutorial') {
+    const onButton = document.activeElement?.tagName === 'BUTTON';
+
+    if (!onButton && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      nextTutorialStep();
+    } else if (event.key === 'Escape') {
+      finishTutorial();
+    }
+    return;
+  }
+
   if (event.key !== 'Escape') return;
 
   if (state === 'tool') {
@@ -1034,6 +1170,9 @@ function frame(now) {
 
   if (state === 'menu' || state === 'tool' || state === 'shop' || state === 'inventory' || state === 'auth') {
     scene.draw(time, delta);
+  } else if (state === 'tutorial') {
+    if (tutorialReturn === 'playing') game.draw();
+    else scene.draw(time, delta);
   } else if (state === 'playing') {
     game.update(delta);
     game.draw();

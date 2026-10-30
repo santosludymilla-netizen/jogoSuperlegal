@@ -1145,6 +1145,91 @@ body {
   margin-top: 18px;
 }
 
+/* ---------- tutorial ---------- */
+
+.panel--tutorial {
+  width: min(94vw, 620px);
+  border-color: rgba(255, 176, 0, 0.35);
+  box-shadow:
+    0 0 50px rgba(0, 0, 0, 0.9),
+    inset 0 0 40px rgba(255, 176, 0, 0.05);
+}
+
+.tutorial-step {
+  margin: 0 0 10px;
+  font-size: 0.42rem;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+}
+
+.panel--tutorial .overlay-title {
+  margin-bottom: 16px;
+  font-size: clamp(0.9rem, 3vw, 1.3rem);
+  text-align: center;
+}
+
+.tutorial-keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.tutorial-keys kbd {
+  padding: 7px 10px;
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  letter-spacing: 0.1em;
+  color: var(--bone);
+  background: #0b0f0a;
+  border: 2px solid #2c4428;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.tutorial-text {
+  min-height: 5.6em;
+  margin: 0;
+  font-size: 0.46rem;
+  line-height: 2.1;
+  letter-spacing: 0.12em;
+  color: var(--ash);
+}
+
+.tutorial-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin: 20px 0;
+}
+
+.tutorial-dots span {
+  width: 7px;
+  height: 7px;
+  background: #1a2417;
+  border: 1px solid #3a3a35;
+}
+
+.tutorial-dots span.is-active {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(255, 176, 0, 0.6);
+}
+
+.tutorial-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn--tutorial {
+  width: min(100%, 300px);
+  padding: 16px 18px;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+}
+
 /* ---------- aviso de conquista ---------- */
 
 .toast {

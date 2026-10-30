@@ -34,6 +34,7 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 |---|---|
 | Mover | `W` `A` `S` `D` ou setas |
 | Atacar | segurar o botão esquerdo do mouse (mira no cursor) |
+| Avançar tutorial | `PRÓXIMO` / `Enter` / `Espaço` |
 | Voltar / fechar | `ESC` nos menus |
 
 ---
@@ -50,6 +51,13 @@ O banco é criado sozinho em `data/jogo.db` na primeira execução.
 ---
 
 ## Regras do jogo
+
+### Tutorial do primeiro dia
+
+- Na **primeira partida**, antes do dia 1 começar, abre um **tutorial em 6 passos**: mover, mirar/atacar, os 30 s de dia com cura, a noite, o baú dourado e o progresso (loja/inventário).
+- O tutorial **pausa o jogo** (o relógio do dia não corre) e pode ser avançado com **PRÓXIMO**, `Enter`, `Espaço` ou pulado com **PULAR TUTORIAL** / `ESC`.
+- Depois de concluído (ou pulado) ele não abre sozinho de novo; o botão **COMO JOGAR** no menu abre o tutorial a qualquer momento.
+- Durante o dia 1, avisos curtos no HUD reforçam os controles e a meta da primeira noite.
 
 ### Dia, noite, dificuldade e chefes
 
@@ -314,6 +322,7 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 - [x] Ferramentas **RARAS** e **MÍTICAS** (katana, minigun, canhão de plasma)
 - [x] Skins com ferramenta inicial e vantagens
 - [x] **Inventário** no canto superior esquerdo do menu
+- [x] **Tutorial do primeiro dia** em 6 passos + botão **COMO JOGAR** no menu
 - [x] **Conquistas** por dias sobrevividos e zumbis mortos
 - [x] Senha com **8 a 64 caracteres** e pelo menos 1 número
 - [ ] Áudio (golpes, dano, ambiente) via WebAudio
