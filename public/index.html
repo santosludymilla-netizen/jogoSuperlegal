@@ -32,19 +32,27 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <!-- Botão de pausa: canto superior direito, quadrado e explícito -->
+  <button id="btn-pause" class="pause-btn" type="button" hidden aria-label="Pausar o jogo" title="Pausar">
+    <svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"></rect>
+      <rect x="8.5" y="8.5" width="2.6" height="7" fill="currentColor"></rect>
+      <rect x="12.9" y="8.5" width="2.6" height="7" fill="currentColor"></rect>
+    </svg>
+    <span class="pause-label">PAUSE</span>
+  </button>
+
   <div id="menu-top-left" class="menu-top-left">
-    <button id="btn-inventory" class="btn btn--inv" type="button">
+    <button id="btn-inventory" class="btn btn--inv" type="button" aria-label="Inventário">
       <span aria-hidden="true">▤</span>
       <span>INVENTÁRIO</span>
     </button>
-
-    <button id="btn-pause" class="btn btn--ghost" type="button" hidden>PAUSE</button>
 
     <div id="menu-player" class="menu-player" hidden>
       <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
       <span id="menu-player-level" class="menu-player-level">NÍVEL 1 · SOBREVIVENTE</span>
       <span id="menu-player-perk" class="menu-player-perk"></span>
-      <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button">SAIR</button>
+      <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button" aria-label="Sair">SAIR</button>
     </div>
   </div>
 
@@ -56,21 +64,12 @@
     <div class="buttons">
       <button id="btn-play" class="btn btn--play" type="button" aria-label="Jogar">JOGAR</button>
 
-      <button id="btn-shop" class="btn btn--shop" type="button" aria-label="Loja">LOJA</button>
+      <button id="btn-shop" class="btn btn--shop" type="button" aria-label="Loja">
+        <span class="money" aria-hidden="true">$</span>
+        <span>LOJA</span>
+      </button>
 
       <button id="btn-help" class="btn btn--ghost btn--compact" type="button" aria-label="Como jogar">COMO JOGAR</button>
-
-      <button id="btn-inventory" class="btn btn--inv" type="button" aria-label="Inventário">INVENTÁRIO</button>
-
-      <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button" aria-label="Sair">SAIR</button>
-
-      <button id="btn-pause-right" class="btn btn--ghost btn--paused" type="button" aria-label="Pausar">PAUSE</button>
-
-      <button id="btn-tutorial-next" class="btn btn--play btn--tutorial" type="button" aria-label="Próximo passo do tutorial">PRÓXIMO</button>
-
-      <button id="btn-tutorial-skip" class="btn btn--ghost" type="button" aria-label="Pular tutorial">PULAR TUTORIAL</button>
-
-      <button id="gameover-menu" class="btn btn--play btn--compact" type="button" aria-label="Voltar ao menu">VOLTAR AO MENU</button>
     </div>
   </main>
 

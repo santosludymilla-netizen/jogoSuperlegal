@@ -189,6 +189,86 @@ body {
   display: none;
 }
 
+/* ---------- botao de pausa (canto superior direito) ---------- */
+
+.pause-btn {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  font-family: var(--font-pixel);
+  color: var(--pink);
+  cursor: pointer;
+  background: rgba(12, 2, 6, 0.82);
+  border: 2px solid var(--pink);
+  border-radius: 6px;
+  box-shadow:
+    0 0 14px rgba(255, 46, 136, 0.45),
+    inset 0 0 14px rgba(255, 46, 136, 0.12),
+    3px 3px 0 rgba(0, 0, 0, 0.8);
+  transition:
+    background-color 0.14s ease,
+    color 0.14s ease,
+    box-shadow 0.18s ease,
+    transform 0.1s ease;
+}
+
+.pause-btn:hover,
+.pause-btn:focus-visible {
+  color: #0b0206;
+  background: var(--pink);
+  box-shadow:
+    0 0 26px rgba(255, 46, 136, 0.8),
+    0 0 54px rgba(255, 46, 136, 0.35),
+    3px 3px 0 rgba(0, 0, 0, 0.8);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.pause-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 10px rgba(255, 46, 136, 0.5),
+    2px 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+.pause-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.pause-label {
+  font-size: 0.32rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+/* No celular o botao fica um pouco menor para nao cobrir a arena. */
+@media (max-width: 720px) {
+  .pause-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .pause-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pause-label {
+    font-size: 0.28rem;
+  }
+}
+
 .title {
   margin: 0;
   font-size: clamp(1.35rem, 6.2vw, 3.2rem);
@@ -378,8 +458,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-/* ---------- pause button (top right corner) ---------- */
   gap: 16px;
   margin-bottom: 6px;
 }

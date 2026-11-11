@@ -49,7 +49,6 @@ const btnHelp = document.getElementById('btn-help');
 const btnInventory = document.getElementById('btn-inventory');
 const btnLogout = document.getElementById('btn-logout');
 const btnPause = document.getElementById('btn-pause');
-const btnPauseRight = document.getElementById('btn-pause-right');
 
 const auth = document.getElementById('auth');
 const authForm = document.getElementById('auth-form');
@@ -597,7 +596,6 @@ function showAuth(mode = 'login') {
   gameover.hidden = true;
   auth.hidden = false;
   btnPause.hidden = true;
-  btnPauseRight.hidden = true;
 
   authError.textContent = '';
   syncAuthMode();
@@ -625,7 +623,6 @@ function showMenu() {
   blood.hidden = false;
   updatePlayerBadge();
   btnPause.hidden = true;
-  btnPauseRight.hidden = true;
 }
 
 function openToolSelect() {
@@ -815,7 +812,6 @@ function openTutorial(returnTo = 'menu') {
   renderTutorial();
   tutorial.hidden = false;
   btnPause.hidden = true;
-  btnPauseRight.hidden = true;
 }
 
 function finishTutorial() {
@@ -980,7 +976,6 @@ async function openInventory() {
   renderInventory();
   inventoryPanel.hidden = false;
   btnPause.hidden = true;
-  btnPauseRight.hidden = true;
 
   try {
     await fetchInventory();
@@ -994,7 +989,6 @@ function closeInventory() {
   inventoryPanel.hidden = true;
   showMenu();
   btnPause.hidden = true;
-  btnPauseRight.hidden = true;
 }
 
 // ---------- baú e conquistas ----------
@@ -1123,7 +1117,6 @@ function startRun(toolId) {
 
   // Mostrar botão de pause durante a partida
   btnPause.hidden = false;
-  btnPauseRight.hidden = false;
 }
 
 function openShop() {
@@ -1136,8 +1129,6 @@ function openShop() {
   renderShop();
   shopPanel.hidden = false;
   btnPause.hidden = true;
-  btnPauseRight.hidden = true;
-  btnPauseRight.hidden = true;
 }
 
 function closeShop() {
@@ -1318,48 +1309,48 @@ function showGameOver(info) {
   queueSync(true);
 }
 
+// ---------- pausa ----------
+
+// Pausa a partida: congela o jogo e mostra o menu por cima.
+function pauseGame() {
+  if (state !== 'playing') return;
+
+  state = 'paused';
+  setPauseLabel('RESUMIR');
+  hud.hidden = true;
+  menu.classList.remove('is-hidden');
+  menuCoins.hidden = false;
+  menuTopLeft.hidden = false;
+  menuPlayer.hidden = false;
+}
+
+// Retoma a partida de onde parou.
+function resumeGame() {
+  if (state !== 'paused') return;
+
+  state = 'playing';
+  setPauseLabel('PAUSE');
+  hud.hidden = false;
+  menu.classList.add('is-hidden');
+  menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
+  menuPlayer.hidden = true;
+}
+
+// Texto do botão: PAUSE quando roda, RESUMIR quando está pausado.
+function setPauseLabel(text) {
+  const label = btnPause.querySelector('.pause-label');
+  if (label) label.textContent = text;
+  btnPause.setAttribute('aria-label', text === 'PAUSE' ? 'Pausar o jogo' : 'Retomar o jogo');
+}
+
 // ---------- eventos ----------
 
 btnPlay.addEventListener('click', openToolSelect);
 
-btnPauseRight.addEventListener('click', () => {
-  if (state === 'playing') {
-    state = 'paused';
-    btnPauseRight.textContent = 'RESUMIR';
-    hud.hidden = true;
-    menu.classList.remove('is-hidden');
-    menuCoins.hidden = false;
-    menuTopLeft.hidden = false;
-    menuPlayer.hidden = false;
-  } else if (state === 'paused') {
-    state = 'playing';
-    btnPauseRight.textContent = 'PAUSE';
-    hud.hidden = false;
-    menu.classList.add('is-hidden');
-    menuCoins.hidden = true;
-    menuTopLeft.hidden = true;
-    menuPlayer.hidden = true;
-  }
-});
-
 btnPause.addEventListener('click', () => {
-  if (state === 'playing') {
-    state = 'paused';
-    btnPause.textContent = 'RESUMIR';
-    hud.hidden = true;
-    menu.classList.remove('is-hidden');
-    menuCoins.hidden = false;
-    menuTopLeft.hidden = false;
-    menuPlayer.hidden = false;
-  } else if (state === 'paused') {
-    state = 'playing';
-    btnPause.textContent = 'PAUSE';
-    hud.hidden = false;
-    menu.classList.add('is-hidden');
-    menuCoins.hidden = true;
-    menuTopLeft.hidden = true;
-    menuPlayer.hidden = true;
-  }
+  if (state === 'playing') pauseGame();
+  else if (state === 'paused') resumeGame();
 });
 
 toolGrid.addEventListener('click', (event) => {
@@ -1481,6 +1472,16 @@ window.addEventListener('keydown', (event) => {
       nextTutorialStep();
     } else if (event.key === 'Escape') {
       finishTutorial();
+    }
+    return;
+  }
+
+  // Durante a partida: ESC ou P pausa e retoma.
+  if (state === 'playing' || state === 'paused') {
+    if (event.key === 'Escape' || event.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      if (state === 'playing') pauseGame();
+      else resumeGame();
     }
     return;
   }
