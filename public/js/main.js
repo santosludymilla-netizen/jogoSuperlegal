@@ -49,6 +49,7 @@ const btnHelp = document.getElementById('btn-help');
 const btnInventory = document.getElementById('btn-inventory');
 const btnLogout = document.getElementById('btn-logout');
 const btnPause = document.getElementById('btn-pause');
+const btnPauseRight = document.getElementById('btn-pause-right');
 
 const auth = document.getElementById('auth');
 const authForm = document.getElementById('auth-form');
@@ -1312,6 +1313,26 @@ function showGameOver(info) {
 // ---------- eventos ----------
 
 btnPlay.addEventListener('click', openToolSelect);
+
+btnPauseRight.addEventListener('click', () => {
+  if (state === 'playing') {
+    state = 'paused';
+    btnPauseRight.textContent = 'RESUMIR';
+    hud.hidden = true;
+    menu.classList.remove('is-hidden');
+    menuCoins.hidden = false;
+    menuTopLeft.hidden = false;
+    menuPlayer.hidden = false;
+  } else if (state === 'paused') {
+    state = 'playing';
+    btnPauseRight.textContent = 'PAUSE';
+    hud.hidden = false;
+    menu.classList.add('is-hidden');
+    menuCoins.hidden = true;
+    menuTopLeft.hidden = true;
+    menuPlayer.hidden = true;
+  }
+});
 
 btnPause.addEventListener('click', () => {
   if (state === 'playing') {
