@@ -597,6 +597,7 @@ function showAuth(mode = 'login') {
   gameover.hidden = true;
   auth.hidden = false;
   btnPause.hidden = true;
+  btnPauseRight.hidden = true;
 
   authError.textContent = '';
   syncAuthMode();
@@ -624,6 +625,7 @@ function showMenu() {
   blood.hidden = false;
   updatePlayerBadge();
   btnPause.hidden = true;
+  btnPauseRight.hidden = true;
 }
 
 function openToolSelect() {
@@ -813,6 +815,7 @@ function openTutorial(returnTo = 'menu') {
   renderTutorial();
   tutorial.hidden = false;
   btnPause.hidden = true;
+  btnPauseRight.hidden = true;
 }
 
 function finishTutorial() {
@@ -977,6 +980,7 @@ async function openInventory() {
   renderInventory();
   inventoryPanel.hidden = false;
   btnPause.hidden = true;
+  btnPauseRight.hidden = true;
 
   try {
     await fetchInventory();
@@ -990,6 +994,7 @@ function closeInventory() {
   inventoryPanel.hidden = true;
   showMenu();
   btnPause.hidden = true;
+  btnPauseRight.hidden = true;
 }
 
 // ---------- baú e conquistas ----------
@@ -1118,6 +1123,7 @@ function startRun(toolId) {
 
   // Mostrar botão de pause durante a partida
   btnPause.hidden = false;
+  btnPauseRight.hidden = false;
 }
 
 function openShop() {
@@ -1130,6 +1136,8 @@ function openShop() {
   renderShop();
   shopPanel.hidden = false;
   btnPause.hidden = true;
+  btnPauseRight.hidden = true;
+  btnPauseRight.hidden = true;
 }
 
 function closeShop() {
