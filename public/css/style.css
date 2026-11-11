@@ -181,6 +181,14 @@ body {
   pointer-events: none;
 }
 
+.hidden {
+  display: none;
+}
+
+.pw-display.hidden {
+  display: none;
+}
+
 .title {
   margin: 0;
   font-size: clamp(1.35rem, 6.2vw, 3.2rem);
