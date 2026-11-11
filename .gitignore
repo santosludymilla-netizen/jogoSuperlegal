@@ -1,0 +1,7 @@
+node_modules/
+data/
+*.log
+device-poll.pid
+jogoSuperlegal-main.zip
+.DS_Store
+Thumbs.db

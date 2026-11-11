@@ -1,0 +1,263 @@
+'use strict';
+
+const path = require('node:path');
+const express = require('express');
+const { store } = require('./db');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.disable('x-powered-by');
+app.use(express.json({ limit: '16kb' }));
+
+// ---------- limitador simples de tentativas de login ----------
+
+const attempts = new Map();
+const ATTEMPT_WINDOW = 5 * 60 * 1000;
+const ATTEMPT_LIMIT = 25;
+
+// Descarta janelas vencidas para o mapa não crescer para sempre.
+function pruneAttempts(stamp) {
+  for (const [ip, entry] of attempts) {
+    if (stamp > entry.reset) attempts.delete(ip);
+  }
+}
+
+function tooManyAttempts(ip) {
+  const stamp = Date.now();
+  pruneAttempts(stamp);
+  const entry = attempts.get(ip);
+  return Boolean(entry) && entry.count >= ATTEMPT_LIMIT;
+}
+
+// Só as falhas contam: entrar com sucesso não consome tentativa.
+function noteFailure(ip) {
+  const stamp = Date.now();
+  const entry = attempts.get(ip);
+  if (!entry || stamp > entry.reset) {
+    attempts.set(ip, { count: 1, reset: stamp + ATTEMPT_WINDOW });
+    return;
+  }
+  entry.count += 1;
+}
+
+// ---------- helpers ----------
+
+function tokenFrom(request) {
+  const header = request.get('authorization') || '';
+  if (!header.toLowerCase().startsWith('bearer ')) return null;
+  return header.slice(7).trim() || null;
+}
+
+function auth(request, response, next) {
+  const row = store.playerByToken(tokenFrom(request));
+  if (!row) {
+    response.status(401).json({ error: 'SESSÃO EXPIRADA. FAÇA LOGIN NOVAMENTE.' });
+    return;
+  }
+  request.playerRow = row;
+  next();
+}
+
+function stateOf(playerId) {
+  return {
+    player: store.getPlayer(playerId),
+    shop: store.shopCatalog(playerId),
+    inventory: store.inventoryOf(playerId),
+    achievements: store.achievementsOf(playerId),
+  };
+}
+
+function fail(response, status, message) {
+  response.status(status).json({ error: message });
+}
+
+// ---------- autenticação ----------
+
+app.post('/api/auth/register', (request, response) => {
+  if (tooManyAttempts(request.ip)) {
+    return fail(response, 429, 'MUITAS TENTATIVAS. ESPERE ALGUNS MINUTOS.');
+  }
+
+  const { name, password } = request.body || {};
+  const nameError = store.validateName(name);
+  if (nameError) {
+    noteFailure(request.ip);
+    return fail(response, 400, nameError);
+  }
+  const passwordError = store.validatePassword(password);
+  if (passwordError) {
+    noteFailure(request.ip);
+    return fail(response, 400, passwordError);
+  }
+
+  if (store.findByName(name)) {
+    noteFailure(request.ip);
+    return fail(response, 409, 'ESSE NOME JÁ EXISTE. ESCOLHA OUTRO.');
+  }
+
+  let player;
+  try {
+    player = store.createPlayer(name, password);
+  } catch (error) {
+    if (String(error.message).includes('UNIQUE')) {
+      noteFailure(request.ip);
+      return fail(response, 409, 'ESSE NOME JÁ EXISTE. ESCOLHA OUTRO.');
+    }
+    console.error('erro ao criar jogador:', error);
+    return fail(response, 500, 'ERRO AO CRIAR A CONTA.');
+  }
+
+  const token = store.createSession(player.id);
+  response.status(201).json({
+    token,
+    ...stateOf(player.id),
+  });
+});
+
+app.post('/api/auth/login', (request, response) => {
+  if (tooManyAttempts(request.ip)) {
+    return fail(response, 429, 'MUITAS TENTATIVAS. ESPERE ALGUNS MINUTOS.');
+  }
+
+  const { name, password } = request.body || {};
+  if (typeof name !== 'string' || typeof password !== 'string') {
+    return fail(response, 400, 'INFORME NOME E SENHA.');
+  }
+
+  const player = store.authenticate(name, password);
+  if (!player) {
+    noteFailure(request.ip);
+    return fail(response, 401, 'NOME OU SENHA INCORRETOS.');
+  }
+
+  const token = store.createSession(player.id);
+  response.json({ token, ...stateOf(player.id) });
+});
+
+app.post('/api/auth/logout', auth, (request, response) => {
+  store.destroySession(tokenFrom(request));
+  response.json({ ok: true });
+});
+
+// ---------- estado e progresso ----------
+
+app.get('/api/state', auth, (request, response) => {
+  response.json(stateOf(request.playerRow.id));
+});
+
+// Inventário e conquistas em uma rota própria (o menu usa ao abrir o painel).
+app.get('/api/inventory', auth, (request, response) => {
+  const id = request.playerRow.id;
+  response.json({
+    inventory: store.inventoryOf(id),
+    achievements: store.achievementsOf(id),
+  });
+});
+
+app.post('/api/run/report', auth, (request, response) => {
+  const { day, coins, kills, runs, nights } = request.body || {};
+  const result = store.reportRun(request.playerRow.id, { day, coins, kills, runs, nights });
+  const newAchievements = store.syncAchievements(request.playerRow.id);
+  response.json({
+    ...stateOf(result.player.id),
+    newAchievements,
+    progress: result.progress,
+  });
+});
+
+// ---------- baú dourado ----------
+
+app.post('/api/chest/open', auth, (request, response) => {
+  const { day } = request.body || {};
+  const result = store.openChest(request.playerRow.id, day);
+  if (result.error) return fail(response, 400, result.error);
+
+  const id = request.playerRow.id;
+  response.json({
+    ...stateOf(id),
+    chest: {
+      toolId: result.toolId,
+      coins: result.coins,
+      alreadyOpened: Boolean(result.alreadyOpened),
+    },
+  });
+});
+
+// ---------- loja ----------
+
+app.post('/api/shop/tool', auth, (request, response) => {
+  const { toolId } = request.body || {};
+  const result = store.buyTool(request.playerRow.id, toolId);
+  if (result.error) return fail(response, 400, result.error);
+  response.json(stateOf(result.player.id));
+});
+
+app.post('/api/shop/potion', auth, (request, response) => {
+  const result = store.buyPotion(request.playerRow.id);
+  if (result.error) return fail(response, 400, result.error);
+  response.json(stateOf(result.player.id));
+});
+
+app.post('/api/shop/character', auth, (request, response) => {
+  const { characterId } = request.body || {};
+  const result = store.buyCharacter(request.playerRow.id, characterId);
+  if (result.error) return fail(response, 400, result.error);
+  response.json({
+    ...stateOf(result.player.id),
+    grantedStarter: result.grantedStarter ? result.starterTool : null,
+  });
+});
+
+app.post('/api/character/select', auth, (request, response) => {
+  const { characterId } = request.body || {};
+  const result = store.selectCharacter(request.playerRow.id, characterId);
+  if (result.error) return fail(response, 400, result.error);
+  response.json(stateOf(result.player.id));
+});
+
+app.post('/api/tool/select', auth, (request, response) => {
+  const { toolId } = request.body || {};
+  const result = store.selectTool(request.playerRow.id, toolId);
+  if (result.error) return fail(response, 400, result.error);
+  response.json(stateOf(result.player.id));
+});
+
+// ---------- arquivos estáticos ----------
+
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    setHeaders(response, filePath) {
+      if (filePath.endsWith('.html')) {
+        response.setHeader('Cache-Control', 'no-store');
+      }
+    },
+  })
+);
+
+app.use((request, response) => {
+  if (request.path.startsWith('/api/')) {
+    response.status(404).json({ error: 'ROTA NÃO ENCONTRADA.' });
+    return;
+  }
+  response.status(404).send('Not found');
+});
+
+app.use((error, request, response, next) => {
+  if (response.headersSent) return next(error);
+
+  // Corpo malformado ou grande demais é culpa do cliente, não do servidor.
+  if (error.type === 'entity.parse.failed') {
+    return fail(response, 400, 'DADOS INVÁLIDOS NA REQUISIÇÃO.');
+  }
+  if (error.type === 'entity.too.large') {
+    return fail(response, 413, 'REQUISIÇÃO MUITO GRANDE.');
+  }
+
+  console.error('erro no servidor:', error);
+  response.status(500).json({ error: 'ERRO INTERNO DO SERVIDOR.' });
+});
+
+app.listen(PORT, () => {
+  console.log(`INFECTED rodando em http://localhost:${PORT}`);
+});
