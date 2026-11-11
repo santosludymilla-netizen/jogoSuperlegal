@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#050505">
+  <title>INFECTED</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <div class="fx fx--scanlines" aria-hidden="true"></div>
+  <div class="fx fx--vignette" aria-hidden="true"></div>
+  <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+
+  <div id="blood" class="blood" aria-hidden="true">
+    <span style="--x: 8%;  --h: 74px; --w: 11px; --d: -2s;"></span>
+    <span style="--x: 19%; --h: 38px; --w: 7px;  --d: -7s;"></span>
+    <span style="--x: 33%; --h: 96px; --w: 14px; --d: -4s;"></span>
+    <span style="--x: 47%; --h: 28px; --w: 6px;  --d: -9s;"></span>
+    <span style="--x: 62%; --h: 64px; --w: 10px; --d: -1s;"></span>
+    <span style="--x: 76%; --h: 44px; --w: 8px;  --d: -6s;"></span>
+    <span style="--x: 88%; --h: 82px; --w: 12px; --d: -3s;"></span>
+    <span style="--x: 96%; --h: 34px; --w: 6px;  --d: -8s;"></span>
+  </div>
+
+  <div id="menu-coins" class="menu-coins">
+    <span class="money">$</span>
+    <span id="menu-coins-value">0</span>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="menu-top-left" class="menu-top-left">
+    <button id="btn-inventory" class="btn btn--inv" type="button">
+      <span aria-hidden="true">▤</span>
+      <span>INVENTÁRIO</span>
+    </button>
+
+    <button id="btn-pause" class="btn btn--ghost" type="button" hidden>PAUSE</button>
+
+    <div id="menu-player" class="menu-player" hidden>
+      <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
+      <span id="menu-player-level" class="menu-player-level">NÍVEL 1 · SOBREVIVENTE</span>
+      <span id="menu-player-perk" class="menu-player-perk"></span>
+      <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button">SAIR</button>
+    </div>
+  </div>
+
+  <main id="menu" class="menu">
+    <h1 class="title" data-text="INFECTED">INFECTED</h1>
+    <p class="tagline">SOBREVIVA À NOITE</p>
+    <p id="menu-local-note" class="local-note local-note--menu" hidden>SALVO NESTE NAVEGADOR</p>
+
+    <div class="buttons">
+      <button id="btn-play" class="btn btn--play" type="button">JOGAR</button>
+
+      <button id="btn-shop" class="btn btn--shop" type="button">
+        <span class="money" aria-hidden="true">$</span>
+        <span>LOJA</span>
+      </button>
+
+      <button id="btn-help" class="btn btn--ghost btn--compact" type="button">COMO JOGAR</button>
+    </div>
+  </main>
+
+  <!-- Login / cadastro -->
+  <section id="auth" class="overlay overlay--auth" hidden>
+    <div class="panel panel--auth">
+      <h1 class="title title--small" data-text="INFECTED">INFECTED</h1>
+      <p class="overlay-sub">ENTRE OU CRIE UMA CONTA PARA SALVAR SEU PROGRESSO</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab is-active" type="button" data-mode="login">ENTRAR</button>
+        <button class="auth-tab" type="button" data-mode="register">CRIAR CONTA</button>
+      </div>
+
+      <form id="auth-form" class="auth-form" novalidate>
+        <label class="auth-field">
+          <span>NOME</span>
+          <input id="auth-name" name="name" type="text" maxlength="16" autocomplete="username" spellcheck="false">
+        </label>
+
+        <label class="auth-field">
+          <span>SENHA</span>
+          <input id="auth-password" name="password" type="password" maxlength="64" autocomplete="current-password">
+        </label>
+
+        <p id="auth-error" class="auth-error" role="alert"></p>
+
+        <button id="auth-submit" class="btn btn--play btn--compact" type="submit">ENTRAR</button>
+      </form>
+
+      <p class="auth-hint">NOME: 3 A 16 LETRAS/NÚMEROS · SENHA: 8 A 64 CARACTERES COM PELO MENOS 1 NÚMERO</p>
+      <p id="auth-local-note" class="local-note" hidden>
+        MODO LOCAL: A conta e o progresso ficam salvos só neste navegador. E aí, Kennedy?
+      </p>
+    </div>
+  </section>
+
+  <!-- HUD da partida -->
+  <section id="hud" class="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-left">
+        <p class="hud-row"><span class="hud-label">DIA</span> <strong id="hud-day">1</strong></p>
+        <p class="hud-row"><span class="hud-label">FASE</span> <strong id="hud-phase">DIA 10s</strong></p>
+        <p class="hud-row"><span class="hud-label">ZUMBIS</span> <strong id="hud-zombies">0/1</strong></p>
+        <p class="hud-row"><span class="hud-label">DANO</span> <strong id="hud-damage">5</strong></p>
+        <p class="hud-row"><span class="hud-label">RES</span> <strong id="hud-resist">0</strong></p>
+        <div class="hud-health">
+          <div class="health-bar"><div id="health-fill"></div></div>
+          <span id="health-text">100</span>
+        </div>
+      </div>
+      <div class="hud-coins">
+        <span class="money">$</span>
+        <strong id="hud-coins">0</strong>
+      </div>
+    </div>
+
+    <div id="boss-bar" class="boss-bar" hidden>
+      <p id="boss-name" class="boss-name">CHEFE</p>
+      <div class="boss-health"><div id="boss-fill"></div></div>
+    </div>
+
+    <p id="hud-tip" class="hud-tip"></p>
+    <p id="hud-chest" class="hud-chest" hidden>BAÚ DOURADO NO CHÃO</p>
+  </section>
+
+  <!-- Escolha da ferramenta -->
+  <section id="tool-select" class="overlay" hidden>
+    <div class="panel panel--tools">
+      <h2 class="overlay-title">ESCOLHA A FERRAMENTA</h2>
+      <p id="tool-meta" class="overlay-sub">MELHOR DIA: <strong>1</strong> · +4 DANO POR NOITE · +5 POR POÇÃO</p>
+
+      <div id="tool-grid" class="tool-grid"></div>
+    </div>
+  </section>
+
+  <!-- Recompensa do baú dourado -->
+  <section id="chest-reward" class="overlay" hidden>
+    <div class="panel panel--chest">
+      <p class="chest-kicker">BAÚ DOURADO</p>
+      <h2 class="overlay-title">VOCÊ GANHOU</h2>
+
+      <div id="chest-reward-card" class="chest-card"></div>
+
+      <p id="chest-compare" class="overlay-sub chest-compare"></p>
+
+      <div class="chest-actions">
+        <button id="chest-equip" class="btn btn--play btn--compact" type="button">
+          TROCAR DE FERRAMENTA
+        </button>
+        <button id="chest-keep" class="btn btn--ghost" type="button">
+          CONTINUAR COM A MINHA
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tutorial do primeiro dia -->
+  <section id="tutorial" class="overlay" hidden>
+    <div class="panel panel--tutorial">
+      <p id="tutorial-step" class="tutorial-step">1 / 6</p>
+      <h2 id="tutorial-title" class="overlay-title">MOVER</h2>
+
+      <div id="tutorial-keys" class="tutorial-keys"></div>
+
+      <p id="tutorial-text" class="tutorial-text">...</p>
+
+      <div id="tutorial-dots" class="tutorial-dots"></div>
+
+      <div class="tutorial-actions">
+        <button id="tutorial-next" class="btn btn--play btn--tutorial" type="button">PRÓXIMO</button>
+        <button id="tutorial-skip" class="btn btn--ghost" type="button">PULAR TUTORIAL</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inventário e conquistas -->
+  <section id="inventory" class="overlay" hidden>
+    <div class="panel panel--inventory">
+      <div class="panel-head">
+        <h2 class="overlay-title">INVENTÁRIO</h2>
+        <div class="shop-coins"><span class="money">$</span> <span id="inventory-coins">0</span></div>
+      </div>
+
+      <p class="overlay-sub">TUDO O QUE VOCÊ JÁ COMPROU OU GANHOU</p>
+
+      <div class="inventory-level">
+        <div class="inventory-level-head">
+          <span id="inventory-rank" class="inventory-rank">SOBREVIVENTE</span>
+          <span id="inventory-level-value" class="inventory-level-value">NÍVEL 1</span>
+        </div>
+        <div class="inventory-level-bar"><div id="inventory-level-fill"></div></div>
+        <p id="inventory-xp" class="inventory-xp">0 / 15 XP · FALTAM 15</p>
+      </div>
+
+      <h3 class="inventory-subtitle">ITENS</h3>
+      <div id="inventory-items" class="inventory-grid"></div>
+
+      <h3 class="inventory-subtitle">CONQUISTAS</h3>
+      <div id="inventory-achievements" class="achievement-grid"></div>
+
+      <button id="inventory-back" class="btn btn--ghost" type="button">VOLTAR</button>
+    </div>
+  </section>
+
+  <!-- Loja -->
+  <section id="shop" class="overlay" hidden>
+    <div class="panel panel--shop">
+      <div class="panel-head">
+        <h2 class="overlay-title">LOJA</h2>
+        <div class="shop-coins"><span class="money">$</span> <span id="shop-coins-value">0</span></div>
+      </div>
+
+      <div id="shop-items" class="shop-items"></div>
+
+      <button id="shop-back" class="btn btn--ghost" type="button">VOLTAR</button>
+    </div>
+  </section>
+
+  <!-- Fim de jogo -->
+  <section id="gameover" class="overlay" hidden>
+    <div class="panel">
+      <h2 class="overlay-title overlay-title--blood">VOCÊ MORREU</h2>
+      <p id="gameover-info" class="overlay-sub">VOCÊ CHEGOU AO DIA 1</p>
+      <p class="overlay-sub"><span class="money">$</span> <span id="gameover-coins">0</span> GANHAS NESTA PARTIDA</p>
+      <button id="gameover-menu" class="btn btn--play btn--compact" type="button">VOLTAR AO MENU</button>
+    </div>
+  </section>
+
+  <!-- Controles de toque (só aparecem em telas sensíveis ao toque) -->
+  <div id="touch-controls" class="touch-controls" hidden>
+    <div id="stick-move" class="stick stick--move" data-stick="move">
+      <div class="stick-knob"></div>
+      <span class="stick-label">MOVER</span>
+    </div>
+
+    <div id="stick-aim" class="stick stick--aim" data-stick="aim">
+      <div class="stick-knob"></div>
+      <span class="stick-label">MIRAR</span>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
