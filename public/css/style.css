@@ -343,33 +343,6 @@ body {
 
 /* ---------- overlays / paineis ---------- */
 
-/* ---------- pause button (top right corner) ---------- */
-
-.pause-btn {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 20;
-}
-
-.btn--paused {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 46, 136, 0.35);
-  color: #ff2e88;
-  font-size: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.pause-icon {
-  display: block;
-  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.5));
-}
-
 .overlay {
   position: fixed;
   inset: 0;
@@ -397,6 +370,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+/* ---------- pause button (top right corner) ---------- */
   gap: 16px;
   margin-bottom: 6px;
 }
