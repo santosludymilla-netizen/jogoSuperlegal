@@ -48,6 +48,7 @@ const btnShop = document.getElementById('btn-shop');
 const btnHelp = document.getElementById('btn-help');
 const btnInventory = document.getElementById('btn-inventory');
 const btnLogout = document.getElementById('btn-logout');
+const btnPause = document.getElementById('btn-pause');
 
 const auth = document.getElementById('auth');
 const authForm = document.getElementById('auth-form');
@@ -594,6 +595,7 @@ function showAuth(mode = 'login') {
   shopPanel.hidden = true;
   gameover.hidden = true;
   auth.hidden = false;
+  btnPause.hidden = true;
 
   authError.textContent = '';
   syncAuthMode();
@@ -620,6 +622,7 @@ function showMenu() {
   tutorial.hidden = true;
   blood.hidden = false;
   updatePlayerBadge();
+  btnPause.hidden = true;
 }
 
 function openToolSelect() {
@@ -808,6 +811,7 @@ function openTutorial(returnTo = 'menu') {
 
   renderTutorial();
   tutorial.hidden = false;
+  btnPause.hidden = true;
 }
 
 function finishTutorial() {
@@ -971,6 +975,7 @@ async function openInventory() {
 
   renderInventory();
   inventoryPanel.hidden = false;
+  btnPause.hidden = true;
 
   try {
     await fetchInventory();
@@ -983,6 +988,7 @@ async function openInventory() {
 function closeInventory() {
   inventoryPanel.hidden = true;
   showMenu();
+  btnPause.hidden = true;
 }
 
 // ---------- baú e conquistas ----------
@@ -1108,6 +1114,9 @@ function startRun(toolId) {
   }
 
   if (!tutorialDone) openTutorial('playing');
+
+  // Mostrar botão de pause durante a partida
+  btnPause.hidden = false;
 }
 
 function openShop() {
@@ -1119,6 +1128,7 @@ function openShop() {
   blood.hidden = true;
   renderShop();
   shopPanel.hidden = false;
+  btnPause.hidden = true;
 }
 
 function closeShop() {
@@ -1299,9 +1309,49 @@ function showGameOver(info) {
   queueSync(true);
 }
 
+// ---------- pausa ----------
+
+// Pausa a partida: congela o jogo e mostra o menu por cima.
+function pauseGame() {
+  if (state !== 'playing') return;
+
+  state = 'paused';
+  setPauseLabel('RESUMIR');
+  hud.hidden = true;
+  menu.classList.remove('is-hidden');
+  menuCoins.hidden = false;
+  menuTopLeft.hidden = false;
+  menuPlayer.hidden = false;
+}
+
+// Retoma a partida de onde parou.
+function resumeGame() {
+  if (state !== 'paused') return;
+
+  state = 'playing';
+  setPauseLabel('PAUSE');
+  hud.hidden = false;
+  menu.classList.add('is-hidden');
+  menuCoins.hidden = true;
+  menuTopLeft.hidden = true;
+  menuPlayer.hidden = true;
+}
+
+// Texto do botão: PAUSE quando roda, RESUMIR quando está pausado.
+function setPauseLabel(text) {
+  const label = btnPause.querySelector('.pause-label');
+  if (label) label.textContent = text;
+  btnPause.setAttribute('aria-label', text === 'PAUSE' ? 'Pausar o jogo' : 'Retomar o jogo');
+}
+
 // ---------- eventos ----------
 
 btnPlay.addEventListener('click', openToolSelect);
+
+btnPause.addEventListener('click', () => {
+  if (state === 'playing') pauseGame();
+  else if (state === 'paused') resumeGame();
+});
 
 toolGrid.addEventListener('click', (event) => {
   const button = event.target.closest('.tool');
@@ -1426,6 +1476,16 @@ window.addEventListener('keydown', (event) => {
     return;
   }
 
+  // Durante a partida: ESC ou P pausa e retoma.
+  if (state === 'playing' || state === 'paused') {
+    if (event.key === 'Escape' || event.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      if (state === 'playing') pauseGame();
+      else resumeGame();
+    }
+    return;
+  }
+
   if (event.key !== 'Escape') return;
 
   if (state === 'tool') {
@@ -1459,6 +1519,8 @@ function frame(now) {
     else scene.draw(time, delta);
   } else if (state === 'playing') {
     game.update(delta);
+    game.draw();
+  } else if (state === 'paused') {
     game.draw();
   } else if (state === 'chest') {
     // Jogo pausado enquanto o jogador decide o que fazer com o baú.
