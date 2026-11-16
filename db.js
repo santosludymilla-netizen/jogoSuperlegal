@@ -141,6 +141,8 @@ const SHOP_CHARACTERS = {
   brute: 180,
   thief: 200,
   tank: 220,
+  celina: 240,
+  gilsane: 260,
 };
 
 const CHARACTER_STARTER = {
@@ -150,6 +152,8 @@ const CHARACTER_STARTER = {
   brute: 'axe',
   thief: 'spear',
   tank: 'katana',
+  celina: 'knife',
+  gilsane: 'machete',
 };
 
 const POTION_PRICE = 10;

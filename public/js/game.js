@@ -310,6 +310,35 @@ export const CHARACTERS = {
     coins: 1,
     palette: { h: '#cfd8bf', d: '#4a4a44', j: '#2f3b34', p: '#ff2e88', k: '#050505' },
   },
+  celina: {
+    name: 'CELINA',
+    perk: 'MORENA DE SARDINHAS: +20% MOEDAS',
+    starterTool: 'knife',
+    hp: 0,
+    speed: 1.05,
+    damage: 1,
+    resist: 0,
+    coins: 1.2,
+    palette: { h: '#a9713f', d: '#241109', j: '#7a1f3d', p: '#ffd166', k: '#050505' },
+    // Sardinhas (freckles) desenhadas por cima do rosto, em pixels do sprite.
+    details: [
+      { x: 2, y: 4, c: '#6d3f1e' },
+      { x: 3, y: 4, c: '#6d3f1e' },
+      { x: 6, y: 4, c: '#6d3f1e' },
+      { x: 7, y: 4, c: '#6d3f1e' },
+    ],
+  },
+  gilsane: {
+    name: 'GILSANE',
+    perk: 'CABELO RUIVO: +10% VELOCIDADE E +5% DANO',
+    starterTool: 'machete',
+    hp: 0,
+    speed: 1.1,
+    damage: 1.05,
+    resist: 0,
+    coins: 1,
+    palette: { h: '#f0d3bd', d: '#b3341f', j: '#2a4a6b', p: '#ffd166', k: '#050505' },
+  },
 };
 
 export const TOOL_ORDER = [
@@ -1562,7 +1591,23 @@ export class Game {
     ctx.globalAlpha = 1;
 
     drawSprite(ctx, sprite, left, top, this.character.palette, flip, false);
+    this.drawCharacterDetails(left, top, flip);
     this.drawTool();
+  }
+
+  // Sardinhas e outros detalhes do personagem, desenhados sobre o sprite.
+  drawCharacterDetails(left, top, flip) {
+    const details = this.character.details;
+    if (!details || details.length === 0) return;
+
+    const { ctx } = this;
+    const width = PLAYER_SPRITE[0].length;
+
+    for (const dot of details) {
+      const x = left + (flip ? width - 1 - dot.x : dot.x);
+      ctx.fillStyle = dot.c;
+      ctx.fillRect(x, top + dot.y, 1, 1);
+    }
   }
 
   drawTool() {

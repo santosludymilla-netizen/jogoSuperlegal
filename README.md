@@ -225,8 +225,10 @@ O botão **$ LOJA** no menu abre a loja, dividida em três seções:
 | Brutamontes | $180 | +20 de vida e +12% de dano, mas -5% de velocidade | Machado |
 | Ladrão | $200 | +50% de moedas, mas -10 de vida e -5% de dano | Lança |
 | Tanque | $220 | +3 de resistência, mas -10% de velocidade | Katana |
+| Celina | $240 | morena de sardinhas: +20% de moedas | Faca |
+| Gilsane | $260 | cabelo ruivo: +10% de velocidade e +5% de dano | Facão |
 
-Cada personagem tem também sua própria paleta de cores no sprite. O personagem equipado muda vida máxima, velocidade, dano, resistência e ganho de moedas na partida. Dá para trocar de personagem a qualquer momento na loja. Ao comprar uma skin, a ferramenta inicial dela é **adicionada ao inventário** (se você ainda não tiver).
+Cada personagem tem também sua própria paleta de cores no sprite. A **Celina** é morena e tem **sardinhas** (freckles) desenhadas por cima do rosto; a **Gilsane** tem **cabelo ruivo**. O personagem equipado muda vida máxima, velocidade, dano, resistência e ganho de moedas na partida. Dá para trocar de personagem a qualquer momento na loja. Ao comprar uma skin, a ferramenta inicial dela é **adicionada ao inventário** (se você ainda não tiver).
 
 **Melhoria** — **Poção de Ferramenta**: soma **+5 de dano em todas as ferramentas**. Uma poção é liberada a cada **10 dias sobrevividos** (melhor dia): dia 10 libera a 1ª, dia 20 a 2ª, e assim por diante. Preço: **$10** cada.
 
@@ -270,6 +272,7 @@ infected/
     │   ├── save.js           # detecção de modo + cliente da API / backend local
     │   └── local.js          # contas e progresso no localStorage (GitHub Pages)
     └── assets/
+        ├── kennedy.jpg       # logo do Colégio Kennedy de Ponta Grossa (menu)
         └── fonts/            # Press Start 2P (woff2)
 ```
 
@@ -410,7 +413,7 @@ Em **Settings → Pages**, a fonte é o branch `gh-pages` na raiz (`/`). Como o 
 - [x] **Conquistas** por dias sobrevividos e zumbis mortos
 - [x] Senha com **8 a 64 caracteres** e pelo menos 1 número
 - [ ] Áudio (golpes, dano, ambiente) via WebAudio
-- [ ] Pause durante a partida
+- [x] Pause durante a partida
 - [ ] Mais personagens e ferramentas de baú
 
 ### Parte 8 — Nível, baú com escolha e chefes resistentes ✅
@@ -460,3 +463,20 @@ Em **Settings → Pages**, a fonte é o branch `gh-pages` na raiz (`/`). Como o 
 - **Backend local (`local.js`)** replica as regras do `db.js` (validações, tetos do relato, XP/níveis, conquistas, poções por faixa de 10 dias, baú por dia) e guarda tudo em `infected.local.players`. O `save.js` só troca o transporte.
 - **Controles:** os analógicos escrevem vetores normalizados em `game.moveStick`/`game.aimStick`; o `update` soma com o teclado e usa o vetor direito como mira + gatilho. Eles só existem em `pointer: coarse`, com `touch-action: none`.
 - **Responsivo:** media queries em 720 px e no modo paisagem baixo, `env(safe-area-inset-*)` para notch e painéis com rolagem interna.
+
+---
+
+### Parte 10 — Pausa, acessibilidade e novos personagens ✅
+
+- [x] **Botão de pausa quadrado** no canto superior direito da partida, com ícone de pausa/continuar e rótulo **PAUSE**/**RESUMIR**
+- [x] Tela de pausa dedicada com botão **CONTINUAR** e atalho de teclado (**ESC** ou **P**)
+- [x] **Mostrar/ocultar a senha** com ícone de olho no formulário de login/cadastro
+- [x] **Rótulos e descrições** (`aria-label`/`title`) em todos os botões e abas do jogo
+- [x] Referência e **logo do Colégio Kennedy de Ponta Grossa** no menu, linkando para `https://x.com/pgokennedy`
+- [x] Dois novos personagens: **Celina** (morena de sardinhas, +20% de moedas) e **Gilsane** (cabelo ruivo, +10% de velocidade e +5% de dano)
+
+**Pausa:** o estado `playing` ganhou um booleano `paused`. Com a partida pausada, o `requestAnimationFrame` continua desenhando o cenário, mas não chama `game.update()` — o mundo congela sem perder progresso. O botão só aparece durante a partida e alterna entre pausar e continuar.
+
+**Sardinhas da Celina:** o personagem pode ter uma lista opcional `details` (pixels em coordenadas do sprite). Esses pontos são desenhados por cima do rosto no `drawPlayer` e também no ícone da loja/inventário, então a skin fica reconhecível nos dois lugares.
+
+**Logo do colégio:** a imagem fica em `public/assets/kennedy.jpg` e o bloco `#menu-kennedy` no menu abre o perfil `https://x.com/pgokennedy` em nova aba.
