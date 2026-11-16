@@ -302,7 +302,7 @@ Para depurar no console do navegador, abra com `?debug=1` para expor `window.__j
 
 ![Fluxograma do jogo](fluxograma.png)
 
-O diagrama mostra o caminho do jogador: **abrir o jogo → escolher onde guardar o progresso → entrar ou criar conta → menu → escolher a ferramenta → tutorial da primeira partida → dia → noite → fim de jogo ou noite sobrevivida**, com as telas de **loja**, **inventário** e **como jogar** saindo do menu.
+O diagrama mostra o caminho do jogador: **abrir o jogo → entrar ou criar conta (ou ir direto ao menu, se já houver sessão salva) → menu → escolher a ferramenta → tutorial da primeira partida → dia → noite → fim de jogo ou noite sobrevivida**, com as telas de **loja**, **inventário** e **como jogar** saindo do menu.
 
 O arquivo-fonte editável está em [`FLUXOGRAMA.drawio`](FLUXOGRAMA.drawio) — abra no [draw.io](https://app.diagrams.net) para editar.
 
