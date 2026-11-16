@@ -296,6 +296,16 @@ No **modo local** essas mesmas rotas são atendidas em memória/`localStorage` p
 
 Para depurar no console do navegador, abra com `?debug=1` para expor `window.__jogo` (jogo, save e loja).
 
+---
+
+## Fluxograma
+
+![Fluxograma do jogo](fluxograma.png)
+
+O diagrama mostra o fluxo completo do jogo: **modo de armazenamento (servidor/local) → login → menu → escolha de ferramenta → tutorial → dia (10 s) → noite → baú dourado → game over → próximo dia**, com as telas de loja, inventário e "como jogar" saindo do menu.
+
+O arquivo-fonte editável está em [`FLUXOGRAMA.drawio`](FLUXOGRAMA.drawio) — abra no [draw.io](https://app.diagrams.net) para editar.
+
 ## Publicar no GitHub Pages
 
 O site é publicado a partir do conteúdo de `public/` no branch `gh-pages`:
