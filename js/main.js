@@ -49,6 +49,8 @@ const btnHelp = document.getElementById('btn-help');
 const btnInventory = document.getElementById('btn-inventory');
 const btnLogout = document.getElementById('btn-logout');
 const btnPause = document.getElementById('btn-pause');
+const pauseOverlay = document.getElementById('pause');
+const btnResume = document.getElementById('btn-resume');
 
 const auth = document.getElementById('auth');
 const authForm = document.getElementById('auth-form');
@@ -56,6 +58,7 @@ const authName = document.getElementById('auth-name');
 const authPassword = document.getElementById('auth-password');
 const authError = document.getElementById('auth-error');
 const authSubmit = document.getElementById('auth-submit');
+const btnShowPw = document.getElementById('btn-show-pw');
 const authTabs = [...document.querySelectorAll('.auth-tab')];
 
 const hud = document.getElementById('hud');
@@ -251,11 +254,18 @@ const TOOL_ICONS = {
 };
 
 const CHARACTER_ICON = (id) => {
-  const c = CHARACTERS[id].palette;
+  const character = CHARACTERS[id];
+  const c = character.palette;
+  const freckle = character.details && character.details[0] ? character.details[0].c : null;
   return `
     <svg class="char-icon" viewBox="0 0 10 14" shape-rendering="crispEdges" aria-hidden="true">
       <rect x="3" y="0" width="4" height="4" fill="${c.h}"/>
       <rect x="3" y="1" width="4" height="1" fill="${c.d}"/>
+      ${
+        freckle
+          ? `<rect x="3" y="3" width="1" height="1" fill="${freckle}"/><rect x="6" y="3" width="1" height="1" fill="${freckle}"/>`
+          : ''
+      }
       <rect x="2" y="4" width="6" height="5" fill="${c.j}"/>
       <rect x="4" y="5" width="2" height="2" fill="${c.p}"/>
       <rect x="1" y="5" width="1" height="5" fill="${c.h}"/>
@@ -270,6 +280,7 @@ let W = 0;
 let H = 0;
 let state = 'auth';
 let authMode = 'login';
+let paused = false;
 let flashTimer = null;
 const availableTools = new Set();
 
@@ -509,6 +520,42 @@ function updateCoins() {
   inventoryCoins.textContent = save.coins;
 }
 
+// ---------- pausa ----------
+
+function setPaused(value) {
+  const next = Boolean(value) && state === 'playing';
+  if (paused === next) return;
+  paused = next;
+
+  pauseOverlay.hidden = !paused;
+  btnPause.classList.toggle('is-paused', paused);
+  btnPause.setAttribute('aria-pressed', String(paused));
+  btnPause.setAttribute('aria-label', paused ? 'Continuar o jogo' : 'Pausar o jogo');
+  btnPause.title = paused ? 'Continuar o jogo (ESC ou P)' : 'Pausar o jogo (ESC ou P)';
+  const label = btnPause.querySelector('.pause-label');
+  if (label) label.textContent = paused ? 'RESUMIR' : 'PAUSE';
+
+  if (paused) {
+    game.mouse.down = false;
+    resetSticks();
+  }
+}
+
+function togglePause() {
+  if (state !== 'playing') return;
+  setPaused(!paused);
+}
+
+// ---------- mostrar/ocultar a senha ----------
+
+function setPasswordVisible(show) {
+  authPassword.type = show ? 'text' : 'password';
+  btnShowPw.classList.toggle('is-visible', show);
+  btnShowPw.setAttribute('aria-pressed', String(show));
+  btnShowPw.setAttribute('aria-label', show ? 'Ocultar a senha' : 'Mostrar a senha');
+  btnShowPw.title = show ? 'Ocultar a senha' : 'Mostrar a senha';
+}
+
 function updatePlayerBadge() {
   const character = CHARACTERS[save.character] || CHARACTERS.survivor;
 
@@ -583,6 +630,7 @@ function updateHud(info) {
 function showAuth(mode = 'login') {
   state = 'auth';
   authMode = mode;
+  setPaused(false);
 
   menu.classList.add('is-hidden');
   menuCoins.hidden = true;
@@ -595,7 +643,6 @@ function showAuth(mode = 'login') {
   shopPanel.hidden = true;
   gameover.hidden = true;
   auth.hidden = false;
-  btnPause.hidden = true;
 
   authError.textContent = '';
   syncAuthMode();
@@ -605,14 +652,18 @@ function showAuth(mode = 'login') {
 
 function syncAuthMode() {
   for (const tab of authTabs) {
-    tab.classList.toggle('is-active', tab.dataset.mode === authMode);
+    const active = tab.dataset.mode === authMode;
+    tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-selected', String(active));
   }
   authSubmit.textContent = authMode === 'login' ? 'ENTRAR' : 'CRIAR CONTA';
   authPassword.autocomplete = authMode === 'login' ? 'current-password' : 'new-password';
+  setPasswordVisible(false);
 }
 
 function showMenu() {
   state = 'menu';
+  setPaused(false);
   auth.hidden = true;
   menu.classList.remove('is-hidden');
   menuCoins.hidden = false;
@@ -622,7 +673,6 @@ function showMenu() {
   tutorial.hidden = true;
   blood.hidden = false;
   updatePlayerBadge();
-  btnPause.hidden = true;
 }
 
 function openToolSelect() {
@@ -811,7 +861,6 @@ function openTutorial(returnTo = 'menu') {
 
   renderTutorial();
   tutorial.hidden = false;
-  btnPause.hidden = true;
 }
 
 function finishTutorial() {
@@ -975,7 +1024,6 @@ async function openInventory() {
 
   renderInventory();
   inventoryPanel.hidden = false;
-  btnPause.hidden = true;
 
   try {
     await fetchInventory();
@@ -988,7 +1036,6 @@ async function openInventory() {
 function closeInventory() {
   inventoryPanel.hidden = true;
   showMenu();
-  btnPause.hidden = true;
 }
 
 // ---------- baú e conquistas ----------
@@ -1075,6 +1122,7 @@ function showToast(text) {
 }
 
 function startRun(toolId) {
+  setPaused(false);
   toolSelect.hidden = true;
   blood.hidden = true;
 
@@ -1114,9 +1162,6 @@ function startRun(toolId) {
   }
 
   if (!tutorialDone) openTutorial('playing');
-
-  // Mostrar botão de pause durante a partida
-  btnPause.hidden = false;
 }
 
 function openShop() {
@@ -1128,7 +1173,6 @@ function openShop() {
   blood.hidden = true;
   renderShop();
   shopPanel.hidden = false;
-  btnPause.hidden = true;
 }
 
 function closeShop() {
@@ -1297,6 +1341,7 @@ async function handleShopAction(action) {
 
 function showGameOver(info) {
   state = 'gameover';
+  setPaused(false);
   hud.hidden = true;
   bossBar.hidden = true;
   blood.hidden = true;
@@ -1309,48 +1354,15 @@ function showGameOver(info) {
   queueSync(true);
 }
 
-// ---------- pausa ----------
-
-// Pausa a partida: congela o jogo e mostra o menu por cima.
-function pauseGame() {
-  if (state !== 'playing') return;
-
-  state = 'paused';
-  setPauseLabel('RESUMIR');
-  hud.hidden = true;
-  menu.classList.remove('is-hidden');
-  menuCoins.hidden = false;
-  menuTopLeft.hidden = false;
-  menuPlayer.hidden = false;
-}
-
-// Retoma a partida de onde parou.
-function resumeGame() {
-  if (state !== 'paused') return;
-
-  state = 'playing';
-  setPauseLabel('PAUSE');
-  hud.hidden = false;
-  menu.classList.add('is-hidden');
-  menuCoins.hidden = true;
-  menuTopLeft.hidden = true;
-  menuPlayer.hidden = true;
-}
-
-// Texto do botão: PAUSE quando roda, RESUMIR quando está pausado.
-function setPauseLabel(text) {
-  const label = btnPause.querySelector('.pause-label');
-  if (label) label.textContent = text;
-  btnPause.setAttribute('aria-label', text === 'PAUSE' ? 'Pausar o jogo' : 'Retomar o jogo');
-}
-
 // ---------- eventos ----------
 
 btnPlay.addEventListener('click', openToolSelect);
 
-btnPause.addEventListener('click', () => {
-  if (state === 'playing') pauseGame();
-  else if (state === 'paused') resumeGame();
+btnPause.addEventListener('click', togglePause);
+btnResume.addEventListener('click', () => setPaused(false));
+
+btnShowPw.addEventListener('click', () => {
+  setPasswordVisible(authPassword.type === 'password');
 });
 
 toolGrid.addEventListener('click', (event) => {
@@ -1456,6 +1468,14 @@ gameoverMenu.addEventListener('click', () => {
 });
 
 window.addEventListener('keydown', (event) => {
+  if (state === 'playing') {
+    if (event.key === 'Escape' || event.key === 'p' || event.key === 'P') {
+      event.preventDefault();
+      togglePause();
+    }
+    return;
+  }
+
   if (state === 'chest') {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -1472,16 +1492,6 @@ window.addEventListener('keydown', (event) => {
       nextTutorialStep();
     } else if (event.key === 'Escape') {
       finishTutorial();
-    }
-    return;
-  }
-
-  // Durante a partida: ESC ou P pausa e retoma.
-  if (state === 'playing' || state === 'paused') {
-    if (event.key === 'Escape' || event.key.toLowerCase() === 'p') {
-      event.preventDefault();
-      if (state === 'playing') pauseGame();
-      else resumeGame();
     }
     return;
   }
@@ -1510,7 +1520,11 @@ function frame(now) {
   const delta = lastTime ? Math.min(0.05, time - lastTime) : 0.016;
   lastTime = time;
 
-  setTouchVisible(state === 'playing' && game.active);
+  // O botão de pausa só existe durante a partida; fora dela, sai da tela.
+  btnPause.hidden = state !== 'playing';
+  if (state !== 'playing' && paused) setPaused(false);
+
+  setTouchVisible(state === 'playing' && game.active && !paused);
 
   if (state === 'menu' || state === 'tool' || state === 'shop' || state === 'inventory' || state === 'auth') {
     scene.draw(time, delta);
@@ -1518,10 +1532,13 @@ function frame(now) {
     if (tutorialReturn === 'playing') game.draw();
     else scene.draw(time, delta);
   } else if (state === 'playing') {
-    game.update(delta);
-    game.draw();
-  } else if (state === 'paused') {
-    game.draw();
+    if (paused) {
+      // Pausado: o mundo congela, mas o cenário continua sendo desenhado.
+      game.draw();
+    } else {
+      game.update(delta);
+      game.draw();
+    }
   } else if (state === 'chest') {
     // Jogo pausado enquanto o jogador decide o que fazer com o baú.
     game.draw();
