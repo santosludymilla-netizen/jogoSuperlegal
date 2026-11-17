@@ -51,6 +51,7 @@ const btnLogout = document.getElementById('btn-logout');
 const btnPause = document.getElementById('btn-pause');
 const pauseOverlay = document.getElementById('pause');
 const btnResume = document.getElementById('btn-resume');
+const btnPauseMenu = document.getElementById('btn-pause-menu');
 
 const auth = document.getElementById('auth');
 const authForm = document.getElementById('auth-form');
@@ -84,6 +85,7 @@ const shopPanel = document.getElementById('shop');
 const shopCoinsValue = document.getElementById('shop-coins-value');
 const shopItems = document.getElementById('shop-items');
 const shopBack = document.getElementById('shop-back');
+const shopClose = document.getElementById('shop-close');
 
 const inventoryPanel = document.getElementById('inventory');
 const inventoryCoins = document.getElementById('inventory-coins');
@@ -114,6 +116,11 @@ const gameover = document.getElementById('gameover');
 const gameoverInfo = document.getElementById('gameover-info');
 const gameoverCoins = document.getElementById('gameover-coins');
 const gameoverMenu = document.getElementById('gameover-menu');
+
+const storyPanel = document.getElementById('story');
+const btnStory = document.getElementById('btn-story');
+const storyClose = document.getElementById('story-close');
+const storyBack = document.getElementById('story-back');
 
 const menuLocalNote = document.getElementById('menu-local-note');
 const authLocalNote = document.getElementById('auth-local-note');
@@ -665,6 +672,8 @@ function showMenu() {
   state = 'menu';
   setPaused(false);
   auth.hidden = true;
+  hud.hidden = true;
+  bossBar.hidden = true;
   menu.classList.remove('is-hidden');
   menuCoins.hidden = false;
   menuTopLeft.hidden = false;
@@ -1180,6 +1189,27 @@ function closeShop() {
   showMenu();
 }
 
+// Sai da partida pelo menu de pausa: encerra o loop do jogo, salva o
+// progresso da corrida e volta para o menu principal.
+function quitToMenu() {
+  setPaused(false);
+  game.active = false;
+  game.mouse.down = false;
+  resetSticks();
+  queueSync(true);
+  showMenu();
+}
+
+// ---------- historia ----------
+
+function openStory() {
+  storyPanel.hidden = false;
+}
+
+function closeStory() {
+  storyPanel.hidden = true;
+}
+
 function renderShop() {
   shopCoinsValue.textContent = save.coins;
 
@@ -1231,8 +1261,10 @@ function renderShop() {
       } else {
         action = `<button class="btn btn--compact btn--buy" type="button" data-buy-character="${id}" ${
           affordable ? '' : 'disabled'
-        }>${affordable ? `COMPRAR - $${price}` : 'MOEDAS INSUFICIENTES'}</button>`;
+        }>${affordable ? 'COMPRAR' : 'MOEDAS INSUFICIENTES'}</button>`;
       }
+
+      const priceLabel = price > 0 ? `VALOR: <span class="shop-price">$${price}</span>` : 'GRÁTIS';
 
       return `
         <div class="shop-card shop-card--char ${equipped ? 'is-owned' : ''}">
@@ -1246,6 +1278,7 @@ function renderShop() {
           <p class="shop-card-desc">VIDA ${100 + character.hp} · DANO x${character.damage.toFixed(2)} · VEL x${character.speed.toFixed(2)} · RES ${character.resist} · MOEDAS x${character.coins}</p>
           <p class="shop-card-desc shop-card-starter">VEM COM: ${TOOLS[character.starterTool] ? TOOLS[character.starterTool].name : 'FACA'} (${RARITIES[TOOLS[character.starterTool]?.rarity || 'comum'].label})</p>
           ${action}
+          <p class="shop-card-price">${priceLabel}</p>
         </div>
       `;
     })
@@ -1360,6 +1393,7 @@ btnPlay.addEventListener('click', openToolSelect);
 
 btnPause.addEventListener('click', togglePause);
 btnResume.addEventListener('click', () => setPaused(false));
+btnPauseMenu.addEventListener('click', quitToMenu);
 
 btnShowPw.addEventListener('click', () => {
   setPasswordVisible(authPassword.type === 'password');
@@ -1373,6 +1407,7 @@ toolGrid.addEventListener('click', (event) => {
 
 btnShop.addEventListener('click', openShop);
 shopBack.addEventListener('click', closeShop);
+shopClose.addEventListener('click', closeShop);
 
 btnInventory.addEventListener('click', openInventory);
 inventoryBack.addEventListener('click', closeInventory);
@@ -1380,6 +1415,10 @@ inventoryBack.addEventListener('click', closeInventory);
 btnHelp.addEventListener('click', () => openTutorial('menu'));
 tutorialNext.addEventListener('click', nextTutorialStep);
 tutorialSkip.addEventListener('click', finishTutorial);
+
+btnStory.addEventListener('click', openStory);
+storyClose.addEventListener('click', closeStory);
+storyBack.addEventListener('click', closeStory);
 
 chestEquip.addEventListener('click', () => finishChest(true));
 chestKeep.addEventListener('click', () => finishChest(false));
@@ -1498,6 +1537,11 @@ window.addEventListener('keydown', (event) => {
 
   if (event.key !== 'Escape') return;
 
+  if (!storyPanel.hidden) {
+    closeStory();
+    return;
+  }
+
   if (state === 'tool') {
     toolSelect.hidden = true;
     showMenu();
@@ -1592,6 +1636,8 @@ if (new URLSearchParams(window.location.search).has('debug')) {
     startRun,
     openShop,
     openInventory,
+    openStory,
+    quitToMenu,
     showToast,
   };
 }
