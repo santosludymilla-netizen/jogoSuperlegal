@@ -1018,6 +1018,11 @@ body {
   text-shadow: 0 0 10px rgba(255, 46, 136, 0.65);
 }
 
+#hud-bioma {
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 176, 0, 0.55);
+}
+
 .hud-chest {
   position: fixed;
   left: 50%;

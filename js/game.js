@@ -517,6 +517,125 @@ function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+// ---------- biomas: progressão contínua de cenário (sem cortes, estilo Mercs) ----------
+// O jogador avança continuamente de um bioma para o próximo: o terreno, a
+// iluminação, a decoração, as partículas e a paleta dos inimigos se misturam
+// gradualmente durante a travessia, com um marco visual marcando a fronteira.
+const BIOME_SECONDS = 45; // ~3 a 4 dias por bioma
+const BIOME_FADE_SECONDS = 6; // duração da mistura visual entre biomas
+
+const BIOMES = [
+  {
+    id: 'forest',
+    name: 'FLORESTA',
+    sky: ['#071009', '#050c07', '#030704'],
+    glow: ['rgba(57, 255, 20, 0.13)', 'rgba(255, 46, 136, 0.04)'],
+    blotch: ['#0a120a', '#0c0a06'],
+    tuft: '#0f1e0f',
+    speck: ['#1a201a', '#121712'],
+    ground: ['#0c1a0e', '#122412', '#1a3a1a'],
+    groundKind: 'tufts',
+    border: 'trees',
+    borderColor: '#0a1a0e',
+    borderRim: '#24521f',
+    fog: ['57, 255, 20', '255, 46, 136'],
+    ambient: ['#39ff14', '#ff2e88'],
+    zombieSkin: ['#1b2e1b', '#23361f'],
+    zombieEye: ['#6bff4a', '#ff5aa8'],
+    zombieBlood: ['#4a070d', '#3a050a'],
+    speed: 1,
+    hp: 1,
+    scroll: 7,
+    landmark: null,
+    sound: 'forest',
+  },
+  {
+    id: 'road',
+    name: 'ESTRADA',
+    sky: ['#0c0c10', '#08080c', '#050508'],
+    glow: ['rgba(154, 163, 143, 0.10)', 'rgba(255, 46, 136, 0.04)'],
+    blotch: ['#0d0d12', '#101014'],
+    tuft: '#16161c',
+    speck: ['#23232b', '#1a1a20'],
+    ground: ['#8f8f86', '#6b6b62'],
+    groundKind: 'lanes',
+    border: 'fence',
+    borderColor: '#2a2a30',
+    borderRim: '#5a5a62',
+    fog: ['154, 163, 143', '255, 46, 136'],
+    ambient: ['#9aa38f', '#d8d8d0'],
+    zombieSkin: ['#3a3f3a', '#4a4438'],
+    zombieEye: ['#ffd166', '#6bff4a'],
+    zombieBlood: ['#4a070d', '#2a2a30'],
+    speed: 1.05,
+    hp: 1.02,
+    scroll: 16,
+    landmark: 'bridge',
+    sound: 'road',
+  },
+  {
+    id: 'city',
+    name: 'CIDADE ABANDONADA',
+    sky: ['#0b0d14', '#07080d', '#04050a'],
+    glow: ['rgba(255, 176, 0, 0.10)', 'rgba(255, 46, 136, 0.05)'],
+    blotch: ['#0d0f16', '#10121a'],
+    tuft: '#1a1d26',
+    speck: ['#2a2d36', '#1a1c24'],
+    ground: ['#1a1d26', '#12141c', '#5a2b2b'],
+    groundKind: 'rubble',
+    border: 'ruins',
+    borderColor: '#14161d',
+    borderRim: '#3a3f4e',
+    fog: ['255, 176, 0', '255, 46, 136'],
+    ambient: ['#ffb000', '#ff5a3c'],
+    zombieSkin: ['#3d4048', '#4a4438'],
+    zombieEye: ['#ff5aa8', '#ffd166'],
+    zombieBlood: ['#4a070d', '#2a1420'],
+    speed: 1.1,
+    hp: 1.08,
+    scroll: 10,
+    landmark: 'arch',
+    sound: 'city',
+  },
+  {
+    id: 'core',
+    name: 'NÚCLEO DA INFECÇÃO',
+    sky: ['#140608', '#0a0305', '#060203'],
+    glow: ['rgba(255, 46, 136, 0.16)', 'rgba(139, 0, 0, 0.10)'],
+    blotch: ['#160809', '#1a0a0e'],
+    tuft: '#2a0810',
+    speck: ['#3a0d14', '#240a10'],
+    ground: ['#2a0810', '#5a1030', '#ff2e88'],
+    groundKind: 'cracks',
+    border: 'spikes',
+    borderColor: '#1c0609',
+    borderRim: '#8b0000',
+    fog: ['255, 46, 136', '139, 0, 0'],
+    ambient: ['#ff2e88', '#ffb000'],
+    zombieSkin: ['#4a1420', '#3a0d14'],
+    zombieEye: ['#ff2e88', '#ffb000'],
+    zombieBlood: ['#8b0000', '#4a070d'],
+    speed: 1.16,
+    hp: 1.18,
+    scroll: 12,
+    landmark: 'portal',
+    sound: 'core',
+  },
+];
+
+// Mistura o bioma atual com o próximo para escolher a aparência de um inimigo.
+function biomeAt(game) {
+  const floor = Math.min(BIOMES.length - 1, Math.floor(game.biomePos));
+  const next = Math.min(BIOMES.length - 1, floor + 1);
+  const fade = easeOutCubic(game.biomeFade);
+  const useNext = game.biomeFade > 0 && Math.random() < fade;
+  return BIOMES[useNext ? next : floor];
+}
+
 function drawSprite(g, rows, left, top, palette, flip, flash, scale = 1) {
   const width = rows[0].length;
 
@@ -557,6 +676,7 @@ export class Game {
 
   bindInput() {
     window.addEventListener('keydown', (event) => {
+      this.ensureAudio();
       const key = event.key.toLowerCase();
       this.keys.add(key);
 
@@ -579,6 +699,7 @@ export class Game {
     this.canvas.addEventListener('mousemove', (event) => this.updateMouse(event));
 
     this.canvas.addEventListener('mousedown', (event) => {
+      this.ensureAudio();
       if (!this.active) return;
       event.preventDefault();
       this.updateMouse(event);
@@ -590,6 +711,7 @@ export class Game {
     });
 
     this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+    this.canvas.addEventListener('pointerdown', () => this.ensureAudio(), { passive: true });
   }
 
   updateMouse(event) {
@@ -632,7 +754,6 @@ export class Game {
     this.W = W;
     this.H = H;
     this.buildBackground();
-
     if (this.active) {
       this.decals = document.createElement('canvas');
       this.decals.width = W;
@@ -702,15 +823,20 @@ export class Game {
     this.tip = '';
     this.tipUntil = 0;
 
-    this.fireflies = Array.from(
-      { length: Math.round((this.W * this.H) / 2600) + 8 },
-      () => ({
-        x: Math.random() * this.W,
-        y: Math.random() * this.H,
-        phase: Math.random() * Math.PI * 2,
-        tint: Math.random() < 0.65 ? '#39ff14' : '#ff2e88',
-      })
-    );
+    // Progressão contínua de cenário: posição no eixo dos biomas, mistura
+    // visual durante a travessia, rolagem do terreno e marco de fronteira.
+    this.biomePos = 0;
+    this.biomeFade = 0;
+    this.bgFrom = null;
+    this.bgNext = null;
+    this.decor = [];
+    this.decorNext = null;
+    this.scrollY = 0;
+    this.landmark = null;
+    this.fireflies = [];
+
+    this.buildBackground();
+    this.refreshAmbient();
 
     this.active = true;
     this.mouse.down = false;
@@ -753,6 +879,57 @@ export class Game {
   setTip(text, seconds) {
     this.tip = text;
     this.tipUntil = this.time + seconds;
+  }
+
+  // ---------- som original de travessia de bioma (WebAudio, sem assets) ----------
+
+  ensureAudio() {
+    try {
+      if (!this.audio) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        this.audio = new AC();
+      }
+      if (this.audio.state === 'suspended') this.audio.resume();
+    } catch {
+      this.audio = null;
+    }
+  }
+
+  // Varredura de frequência diferente para cada bioma; toca só quando o
+  // navegador já liberou o áudio (após um gesto do jogador).
+  playBiomeSound(kind) {
+    try {
+      this.ensureAudio();
+      if (!this.audio || this.audio.state !== 'running') return;
+
+      const t0 = this.audio.currentTime;
+      const osc = this.audio.createOscillator();
+      const gain = this.audio.createGain();
+
+      const presets = {
+        forest: ['triangle', 220, 330],
+        road: ['sawtooth', 90, 60],
+        city: ['triangle', 140, 90],
+        core: ['square', 160, 420],
+      };
+      const [type, from, to] = presets[kind] || presets.forest;
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(from, t0);
+      osc.frequency.exponentialRampToValueAtTime(to, t0 + 0.7);
+
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.05, t0 + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
+
+      osc.connect(gain);
+      gain.connect(this.audio.destination);
+      osc.start(t0);
+      osc.stop(t0 + 1);
+    } catch {
+      /* áudio indisponível: segue sem som */
+    }
   }
 
   // Dia: 10 segundos de luz, vida regenerando e o baú dourado no chão.
@@ -901,20 +1078,24 @@ export class Game {
   spawnZombie() {
     const { x, y } = this.spawnPoint();
 
-    const speedMult = Math.min(1.8, 1 + ZOMBIE_SPEED_PER_DAY * (this.day - 1));
+    // Aparência e vigor do zumbi seguem o bioma em que a partida está.
+    const biome = biomeAt(this);
+    const speedMult = Math.min(1.8, 1 + ZOMBIE_SPEED_PER_DAY * (this.day - 1)) * biome.speed;
+    const hpMult = this.zombieHpMult() * biome.hp;
     const sprite = ZOMBIE_SPRITES[Math.floor(Math.random() * ZOMBIE_SPRITES.length)];
 
     this.zombies.push({
       x,
       y,
       sprite,
-      hp: BASE_ZOMBIE_HP * this.zombieHpMult(),
-      maxHp: BASE_ZOMBIE_HP * this.zombieHpMult(),
+      skin: biome.zombieSkin[Math.floor(Math.random() * biome.zombieSkin.length)],
+      hp: BASE_ZOMBIE_HP * hpMult,
+      maxHp: BASE_ZOMBIE_HP * hpMult,
       damage: BASE_ZOMBIE_DAMAGE * this.zombieDamageMult(),
       speed: (17 + Math.random() * 8) * speedMult,
       radius: 5,
-      eye: Math.random() < 0.72 ? '#6bff4a' : '#ff5aa8',
-      blood: Math.random() < 0.5 ? '#4a070d' : '#3a050a',
+      eye: biome.zombieEye[Math.floor(Math.random() * biome.zombieEye.length)],
+      blood: biome.zombieBlood[Math.floor(Math.random() * biome.zombieBlood.length)],
       flash: 0,
       attackCd: 0.5,
       phase: Math.random() * Math.PI * 2,
@@ -1178,7 +1359,8 @@ export class Game {
     this.cb.onGameOver({ day: this.day, coins: this.coinsEarned });
   }
 
-  buildBackground() {
+  // Renderiza o fundo de um bioma: céu, luz, manchas, tufo e borda temática.
+  renderBiomeCanvas(biome) {
     const { W, H } = this;
     const canvas = document.createElement('canvas');
     canvas.width = W;
@@ -1186,9 +1368,9 @@ export class Game {
     const g = canvas.getContext('2d');
 
     const base = g.createLinearGradient(0, 0, 0, H);
-    base.addColorStop(0, '#071009');
-    base.addColorStop(0.5, '#050c07');
-    base.addColorStop(1, '#030704');
+    base.addColorStop(0, biome.sky[0]);
+    base.addColorStop(0.5, biome.sky[1]);
+    base.addColorStop(1, biome.sky[2]);
     g.fillStyle = base;
     g.fillRect(0, 0, W, H);
 
@@ -1200,8 +1382,8 @@ export class Game {
       H * 0.55,
       Math.max(W, H) * 0.55
     );
-    light.addColorStop(0, 'rgba(57, 255, 20, 0.13)');
-    light.addColorStop(0.55, 'rgba(255, 46, 136, 0.04)');
+    light.addColorStop(0, biome.glow[0]);
+    light.addColorStop(0.55, biome.glow[1]);
     light.addColorStop(1, 'rgba(0, 0, 0, 0)');
     g.fillStyle = light;
     g.fillRect(0, 0, W, H);
@@ -1213,14 +1395,14 @@ export class Game {
       const ry = 1 + Math.random() * 3;
 
       g.globalAlpha = 0.28;
-      g.fillStyle = Math.random() < 0.5 ? '#0a120a' : '#0c0a06';
+      g.fillStyle = biome.blotch[i % biome.blotch.length];
       g.beginPath();
       g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
       g.fill();
     }
     g.globalAlpha = 1;
 
-    g.fillStyle = '#0f1e0f';
+    g.fillStyle = biome.tuft;
     for (let i = 0; i < Math.round((W * H) / 700); i += 1) {
       const x = Math.floor(Math.random() * W);
       const y = Math.floor(Math.random() * H);
@@ -1229,7 +1411,7 @@ export class Game {
     }
 
     for (let i = 0; i < 16; i += 1) {
-      g.fillStyle = Math.random() < 0.5 ? '#1a201a' : '#121712';
+      g.fillStyle = biome.speck[i % biome.speck.length];
       g.fillRect(Math.floor(Math.random() * W), Math.floor(Math.random() * H), 2, 1);
     }
 
@@ -1266,48 +1448,306 @@ export class Game {
       if (side === 0 || side === 2) {
         for (let x = -10; x < W + step; x += step * (0.7 + Math.random() * 0.5)) {
           const y = side === 0 ? -2 + Math.random() * 8 : H + 2 - Math.random() * 8;
-          drawCanopy(x, y, 10 + Math.random() * 9, '#0a1a0e', '#24521f');
+          drawCanopy(x, y, 10 + Math.random() * 9, biome.borderColor, biome.borderRim);
         }
       } else {
         for (let y = -10; y < H + step; y += step * (0.7 + Math.random() * 0.5)) {
           const x = side === 1 ? W + 2 - Math.random() * 8 : -2 + Math.random() * 8;
-          drawCanopy(x, y, 10 + Math.random() * 9, '#0a1a0e', '#24521f');
+          drawCanopy(x, y, 10 + Math.random() * 9, biome.borderColor, biome.borderRim);
         }
       }
     };
 
-    borderTrees(0);
-    borderTrees(2);
-    borderTrees(1);
-    borderTrees(3);
+    const borderFence = (side) => {
+      const step = 18;
+      g.fillStyle = biome.borderColor;
+      if (side === 0 || side === 2) {
+        const y = side === 0 ? 4 : H - 6;
+        for (let x = 0; x < W; x += step) g.fillRect(x, y, 3, 8);
+        g.fillRect(0, y + 3, W, 1);
+      } else {
+        const x = side === 1 ? W - 6 : 4;
+        for (let y = 0; y < H; y += step) g.fillRect(x, y, 8, 3);
+        g.fillRect(x + 3, 0, 1, H);
+      }
+    };
 
-    for (let i = 0; i < 7; i += 1) {
-      const x = MARGIN + 20 + Math.random() * (W - 2 * MARGIN - 40);
-      const y = MARGIN + 20 + Math.random() * (H - 2 * MARGIN - 40);
+    const borderRuins = (side) => {
+      g.fillStyle = biome.borderColor;
+      if (side === 0 || side === 2) {
+        const y = side === 0 ? 0 : H - 26 - Math.random() * 10;
+        for (let x = 0; x < W; x += 30 + Math.random() * 26) {
+          const h = 18 + Math.random() * 16;
+          g.fillRect(x, side === 0 ? 0 : H - h, 16 + Math.random() * 10, h);
+          g.fillStyle = biome.borderRim;
+          g.fillRect(x + 3, side === 0 ? 2 : H - h + 2, 2, 2);
+          g.fillStyle = biome.borderColor;
+        }
+        g.fillRect(0, side === 0 ? 10 : H - 12, W, 2);
+      } else {
+        for (let y = 0; y < H; y += 34 + Math.random() * 24) {
+          const h = 20 + Math.random() * 14;
+          g.fillRect(side === 1 ? W - h : 0, y, h, 14 + Math.random() * 8);
+        }
+      }
+    };
 
-      if (Math.hypot(x - W / 2, y - H / 2) < 55) continue;
+    const borderSpikes = (side) => {
+      g.fillStyle = biome.borderColor;
+      const step = 16;
+      if (side === 0 || side === 2) {
+        const base = side === 0 ? 0 : H;
+        for (let x = -4; x < W + step; x += step) {
+          const h = 8 + Math.random() * 14;
+          const dir = side === 0 ? 1 : -1;
+          g.beginPath();
+          g.moveTo(x, base);
+          g.lineTo(x + 4, base + dir * h);
+          g.lineTo(x + 8, base);
+          g.fill();
+          g.fillStyle = biome.borderRim;
+          g.fillRect(x + 3, base + dir * (h - 3), 2, 3);
+          g.fillStyle = biome.borderColor;
+        }
+      } else {
+        const base = side === 1 ? W : 0;
+        for (let y = -4; y < H + step; y += step) {
+          const h = 8 + Math.random() * 14;
+          const dir = side === 1 ? -1 : 1;
+          g.beginPath();
+          g.moveTo(base, y);
+          g.lineTo(base + dir * h, y + 4);
+          g.lineTo(base, y + 8);
+          g.fill();
+        }
+      }
+    };
 
-      g.fillStyle = '#121a12';
-      g.fillRect(Math.round(x) - 3, Math.round(y) - 5, 6, 3);
-      g.globalAlpha = 0.35;
-      g.fillStyle = '#000000';
-      g.beginPath();
-      g.arc(x + 2, y + 1, 5, 0, Math.PI * 2);
-      g.fill();
-      g.globalAlpha = 1;
+    if (biome.border === 'trees') {
+      borderTrees(0);
+      borderTrees(2);
+      borderTrees(1);
+      borderTrees(3);
+    } else if (biome.border === 'fence') {
+      borderFence(0);
+      borderFence(2);
+      borderFence(1);
+      borderFence(3);
+    } else if (biome.border === 'ruins') {
+      borderRuins(0);
+      borderRuins(2);
+      borderRuins(1);
+      borderRuins(3);
+    } else {
+      borderSpikes(0);
+      borderSpikes(2);
+      borderSpikes(1);
+      borderSpikes(3);
     }
 
-    for (let i = 0; i < 9; i += 1) {
-      const x = MARGIN + Math.random() * (W - MARGIN * 2);
-      const y = MARGIN + Math.random() * (H - MARGIN * 2);
+    // Decoração interna de cada bioma.
+    if (biome.groundKind === 'tufts') {
+      for (let i = 0; i < 7; i += 1) {
+        const x = MARGIN + 20 + Math.random() * (W - 2 * MARGIN - 40);
+        const y = MARGIN + 20 + Math.random() * (H - 2 * MARGIN - 40);
 
-      if (Math.hypot(x - W / 2, y - H / 2) < 45) continue;
+        if (Math.hypot(x - W / 2, y - H / 2) < 55) continue;
 
-      drawCanopy(x, y, 3 + Math.random() * 4, '#08140a', '#1a3a1a');
+        g.fillStyle = '#121a12';
+        g.fillRect(Math.round(x) - 3, Math.round(y) - 5, 6, 3);
+        g.globalAlpha = 0.35;
+        g.fillStyle = '#000000';
+        g.beginPath();
+        g.arc(x + 2, y + 1, 5, 0, Math.PI * 2);
+        g.fill();
+        g.globalAlpha = 1;
+      }
+
+      for (let i = 0; i < 9; i += 1) {
+        const x = MARGIN + Math.random() * (W - MARGIN * 2);
+        const y = MARGIN + Math.random() * (H - MARGIN * 2);
+
+        if (Math.hypot(x - W / 2, y - H / 2) < 45) continue;
+
+        drawCanopy(x, y, 3 + Math.random() * 4, '#08140a', biome.borderRim);
+      }
+    } else if (biome.groundKind === 'lanes') {
+      // Faixas da estrada: fileiras de tinta desbotada.
+      g.fillStyle = '#5a5a52';
+      for (const laneX of [W * 0.3, W * 0.7]) {
+        for (let y = 6; y < H; y += 22) {
+          g.fillRect(Math.round(laneX + Math.random() * 2), y, 2, 10);
+        }
+      }
+      for (let i = 0; i < 6; i += 1) {
+        const x = MARGIN + Math.random() * (W - MARGIN * 2);
+        const y = MARGIN + Math.random() * (H - MARGIN * 2);
+        g.fillStyle = '#23232b';
+        g.fillRect(Math.round(x), Math.round(y), 5 + Math.random() * 6, 3);
+      }
+    } else if (biome.groundKind === 'rubble') {
+      // Escombros e destroços de cidade abandonada.
+      for (let i = 0; i < 8; i += 1) {
+        const x = MARGIN + Math.random() * (W - MARGIN * 2 - 14);
+        const y = MARGIN + Math.random() * (H - MARGIN * 2 - 14);
+        g.fillStyle = '#1a1c24';
+        g.fillRect(Math.round(x), Math.round(y), 10 + Math.random() * 8, 6 + Math.random() * 5);
+        g.fillStyle = biome.borderRim;
+        g.fillRect(Math.round(x) + 2, Math.round(y) + 2, 2, 2);
+        g.fillRect(Math.round(x) + 6, Math.round(y) + 4, 2, 2);
+      }
+      for (let i = 0; i < 5; i += 1) {
+        const x = MARGIN + Math.random() * (W - MARGIN * 2);
+        const y = MARGIN + Math.random() * (H - MARGIN * 2);
+        g.fillStyle = '#5a2b2b';
+        g.fillRect(Math.round(x), Math.round(y), 3, 2);
+      }
+    } else {
+      // Núcleo: veias de infecção brilhando no chão.
+      for (let i = 0; i < 9; i += 1) {
+        const x = MARGIN + Math.random() * (W - MARGIN * 2);
+        const y = MARGIN + Math.random() * (H - MARGIN * 2);
+        g.fillStyle = '#3a0d14';
+        g.fillRect(Math.round(x), Math.round(y), 4 + Math.random() * 6, 2);
+        g.fillStyle = biome.borderRim;
+        g.globalAlpha = 0.5;
+        g.fillRect(Math.round(x) + 1, Math.round(y), 1, 1);
+        g.globalAlpha = 1;
+      }
     }
 
-    this.bg = canvas;
+    return canvas;
   }
+
+  // Itens de terreno que rolam continuamente, dando a sensação de avanço.
+  makeDecor(biome) {
+    const { W, H } = this;
+    const items = [];
+    const area = (W * H) / 2400;
+
+    if (biome.groundKind === 'tufts') {
+      for (let i = 0; i < area; i += 1) {
+        items.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          w: 1,
+          h: 1 + Math.floor(Math.random() * 2),
+          c: biome.ground[i % biome.ground.length],
+        });
+      }
+      for (let i = 0; i < 6; i += 1) {
+        items.push({ x: Math.random() * W, y: Math.random() * H, w: 1, h: 1, c: '#ffb000' });
+      }
+    } else if (biome.groundKind === 'lanes') {
+      for (const laneX of [W * 0.3, W * 0.7]) {
+        for (let y = 0; y < H + 24; y += 16) {
+          items.push({ x: laneX, y, w: 2, h: 7, c: biome.ground[0] });
+        }
+      }
+      for (let i = 0; i < area * 0.6; i += 1) {
+        items.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          w: 2,
+          h: 1,
+          c: biome.ground[1],
+        });
+      }
+    } else if (biome.groundKind === 'rubble') {
+      for (let i = 0; i < area; i += 1) {
+        items.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          w: 2 + Math.floor(Math.random() * 3),
+          h: 1 + Math.floor(Math.random() * 2),
+          c: biome.ground[i % biome.ground.length],
+        });
+      }
+    } else {
+      for (let i = 0; i < area; i += 1) {
+        items.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          w: 1 + Math.floor(Math.random() * 3),
+          h: 1,
+          c: biome.ground[i % biome.ground.length],
+        });
+      }
+    }
+
+    return items;
+  }
+
+  // Partículas ambientais de cada bioma (vagalumes, poeira, brasas, esporos).
+  refreshAmbient() {
+    const floor = Math.min(BIOMES.length - 1, Math.floor(this.biomePos));
+    const biome = BIOMES[floor];
+
+    this.fireflies = Array.from(
+      { length: Math.round((this.W * this.H) / 2600) + 8 },
+      () => ({
+        x: Math.random() * this.W,
+        y: Math.random() * this.H,
+        phase: Math.random() * Math.PI * 2,
+        tint: biome.ambient[Math.floor(Math.random() * biome.ambient.length)],
+        vx: (Math.random() - 0.5) * 14,
+        vy: (Math.random() - 0.5) * 10,
+      })
+    );
+  }
+
+  buildBackground() {
+    const floor = Math.min(BIOMES.length - 1, Math.floor(this.biomePos || 0));
+    this.bg = this.renderBiomeCanvas(BIOMES[floor]);
+    this.decor = this.makeDecor(BIOMES[floor]);
+    this.decorNext = null;
+    this.bgNext = null;
+    this.bgFrom = null;
+    this.biomeFade = 0;
+  }
+
+  // Avança a posição no eixo dos biomas e conduz a travessia entre eles.
+  updateBiome(dt) {
+    const prevFloor = Math.min(BIOMES.length - 1, Math.floor(this.biomePos));
+
+    this.scrollY += dt * (BIOMES[prevFloor].scroll + (this.biomeFade > 0 ? 10 : 0));
+
+    if (this.landmark) {
+      this.landmark.t += dt;
+      if (this.landmark.t >= this.landmark.dur) this.landmark = null;
+    }
+
+    if (this.biomeFade > 0) {
+      this.biomeFade = Math.min(1, this.biomeFade + dt / BIOME_FADE_SECONDS);
+      if (this.biomeFade >= 1) {
+        this.bg = this.bgNext;
+        this.bgFrom = null;
+        this.bgNext = null;
+        this.decor = this.decorNext;
+        this.decorNext = null;
+        this.biomeFade = 0;
+      }
+    }
+
+    if (this.biomePos >= BIOMES.length - 1) return;
+
+    this.biomePos = Math.min(BIOMES.length - 1, this.biomePos + dt / BIOME_SECONDS);
+
+    const floor = Math.floor(this.biomePos);
+    if (floor !== prevFloor) {
+      this.biomeFade = 0.0001;
+      this.bgFrom = this.bg;
+      this.bgNext = this.renderBiomeCanvas(BIOMES[floor]);
+      this.decorNext = this.makeDecor(BIOMES[floor]);
+      this.refreshAmbient();
+      this.landmark = { t: 0, dur: 3.4, kind: BIOMES[floor].landmark };
+      if (BIOMES[floor].landmark) {
+        this.setTip(`ENTRANDO NA ${BIOMES[floor].name}`, 3.2);
+      }
+      this.playBiomeSound(BIOMES[floor].sound);
+    }
+  }
+
 
   particlesUpdate(dt) {
     for (const particle of this.particles) {
@@ -1325,6 +1765,7 @@ export class Game {
     if (!this.active) return;
 
     this.time += dt;
+    this.updateBiome(dt);
 
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 45);
     if (this.tipUntil > 0 && this.time > this.tipUntil) {
@@ -1511,6 +1952,7 @@ export class Game {
         resistance: this.resistance,
         tip: this.tip,
         phase: this.phase,
+        biome: BIOMES[Math.min(BIOMES.length - 1, Math.floor(this.biomePos))].name,
         dayLeft: this.phase === 'day' ? this.dayTimer : 0,
         chest: Boolean(this.chest),
         boss: this.boss
@@ -1544,7 +1986,7 @@ export class Game {
     ctx.globalAlpha = 1;
 
     const palette = {
-      '#': zombie.boss ? '#3a0d14' : '#1b2e1b',
+      '#': zombie.boss ? '#3a0d14' : zombie.skin || '#1b2e1b',
       b: zombie.blood,
       x: '#9aa38f',
       e: zombie.eye,
@@ -2157,32 +2599,142 @@ export class Game {
     if (!this.fireflies) return;
 
     for (const firefly of this.fireflies) {
-      const x = firefly.x + Math.sin(this.time * 0.6 + firefly.phase) * 7;
-      const y = firefly.y + Math.cos(this.time * 0.45 + firefly.phase) * 5;
+      const driftX = firefly.vx * this.time;
+      const driftY = firefly.vy * this.time;
+      const x = (((firefly.x + driftX) % this.W) + this.W) % this.W;
+      const y = (((firefly.y + driftY) % this.H) + this.H) % this.H;
+      const px = x + Math.sin(this.time * 0.6 + firefly.phase) * 7;
+      const py = y + Math.cos(this.time * 0.45 + firefly.phase) * 5;
 
       ctx.globalAlpha = 0.18 + 0.4 * Math.abs(Math.sin(this.time * 1.1 + firefly.phase));
       ctx.fillStyle = firefly.tint;
-      ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+      ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
     }
 
     ctx.globalAlpha = 1;
   }
 
+  drawGroundDecor(alpha, items) {
+    if (!items || items.length === 0 || alpha <= 0) return;
+    const { ctx, W, H } = this;
+    const PH = H + 24;
+
+    ctx.globalAlpha = alpha;
+    for (const item of items) {
+      let y = (item.y + this.scrollY) % PH;
+      if (y < 0) y += PH;
+      y -= 12;
+
+      ctx.fillStyle = item.c;
+      if (item.e) {
+        ctx.beginPath();
+        ctx.ellipse(item.x, y, item.w, item.h, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(Math.round(item.x), Math.round(y), item.w, item.h);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Marco da fronteira entre biomas: atravessa a tela durante a travessia.
+  drawLandmark() {
+    if (!this.landmark) return;
+    const { ctx, W, H } = this;
+    const { t, dur, kind } = this.landmark;
+    if (!kind) return;
+
+    const p = Math.min(1, t / dur);
+    const ease = easeOutCubic(p);
+    const alpha = p < 0.22 ? p / 0.22 : p > 0.78 ? (1 - p) / 0.22 : 1;
+    const bandH = 54;
+    const y = -bandH - 8 + ease * (H + 2 * bandH + 16);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (kind === 'bridge') {
+      // Ponte de madeira da estrada: tábuas e corrimãos.
+      ctx.fillStyle = '#4a3524';
+      for (let x = 0; x < W; x += 9) {
+        ctx.fillRect(x, y + 6, 8, bandH - 12);
+      }
+      ctx.fillStyle = '#6b4a2f';
+      ctx.fillRect(0, y + 8, W, 2);
+      ctx.fillRect(0, y + bandH - 10, W, 2);
+      for (let x = 6; x < W; x += 36) {
+        ctx.fillRect(x, y + 2, 2, bandH - 4);
+      }
+    } else if (kind === 'arch') {
+      // Arco de ruínas da cidade abandonada.
+      ctx.fillStyle = '#2a2d36';
+      ctx.fillRect(W * 0.18, y - 26, 12, bandH + 52);
+      ctx.fillRect(W * 0.82 - 12, y - 26, 12, bandH + 52);
+      ctx.fillRect(W * 0.18, y - 30, W * 0.64, 10);
+      ctx.fillStyle = '#4a4f5e';
+      ctx.fillRect(W * 0.18 + 2, y - 28, 3, 3);
+      ctx.fillRect(W * 0.5, y - 28, 3, 3);
+      ctx.fillRect(W * 0.82 - 5, y - 28, 3, 3);
+      ctx.fillStyle = '#14161d';
+      ctx.fillRect(W * 0.3, y + bandH - 6, 8, 6);
+      ctx.fillRect(W * 0.66, y + bandH - 8, 10, 8);
+    } else if (kind === 'portal') {
+      // Portal do núcleo da infecção.
+      const cx = W / 2;
+      const cy = y + bandH / 2;
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.fillStyle = '#ff2e88';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 46 + Math.sin(t * 6) * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = '#ff2e88';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 38, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#8b0000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#ffb000';
+      ctx.fillRect(cx - 1, cy - 1, 2, 2);
+    }
+
+    ctx.restore();
+  }
+
   drawFog() {
     const { ctx, W, H } = this;
+    const floor = Math.min(BIOMES.length - 1, Math.floor(this.biomePos));
+    const next = Math.min(BIOMES.length - 1, floor + 1);
+    const fade = easeOutCubic(this.biomeFade);
 
-    for (let i = 0; i < 2; i += 1) {
-      const cx = (((this.time * (0.01 + i * 0.008) + i * 0.5) % 1.4) - 0.2) * W;
-      const cy = H * 0.6 + Math.sin(this.time * 0.4 + i) * 12;
-      const radius = Math.max(W, H) * 0.35;
-      const tint = i === 1 ? '255, 46, 136' : '57, 255, 20';
+    const layers = [
+      [BIOMES[floor], 1 - fade],
+      [BIOMES[next], fade],
+    ];
 
-      const fog = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-      fog.addColorStop(0, `rgba(${tint}, 0.05)`);
-      fog.addColorStop(1, `rgba(${tint}, 0)`);
-      ctx.fillStyle = fog;
-      ctx.fillRect(0, 0, W, H);
+    for (const [biome, alpha] of layers) {
+      if (alpha <= 0) continue;
+
+      for (let i = 0; i < 2; i += 1) {
+        const cx = (((this.time * (0.01 + i * 0.008) + i * 0.5) % 1.4) - 0.2) * W;
+        const cy = H * 0.6 + Math.sin(this.time * 0.4 + i) * 12;
+        const radius = Math.max(W, H) * 0.35;
+        const tint = i === 1 ? biome.fog[1] : biome.fog[0];
+
+        const fog = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        fog.addColorStop(0, `rgba(${tint}, 0.05)`);
+        fog.addColorStop(1, `rgba(${tint}, 0)`);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = fog;
+        ctx.fillRect(0, 0, W, H);
+      }
     }
+
+    ctx.globalAlpha = 1;
   }
 
   drawShocks() {
@@ -2241,6 +2793,22 @@ export class Game {
     }
 
     ctx.drawImage(this.bg, 0, 0);
+
+    // Travessia de bioma: o fundo antigo e o novo se misturam sem corte.
+    const fade = easeOutCubic(this.biomeFade);
+    if (this.bgNext && fade > 0) {
+      ctx.globalAlpha = fade;
+      ctx.drawImage(this.bgNext, 0, 0);
+      ctx.globalAlpha = 1;
+    }
+
+    // Terreno rolando continuamente (sensação de avanço, como em Mercs).
+    this.drawGroundDecor(1 - fade, this.decor);
+    if (this.decorNext) this.drawGroundDecor(fade, this.decorNext);
+
+    // Marco da fronteira: ponte, arco ou portal atravessando a tela.
+    this.drawLandmark();
+
     if (this.decals) ctx.drawImage(this.decals, 0, 0);
 
     this.drawChest();
