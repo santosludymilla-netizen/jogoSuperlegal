@@ -80,6 +80,9 @@
 
       <button id="btn-help" class="btn btn--ghost btn--compact" type="button"
         aria-label="Como jogar (tutorial)" title="Como jogar">COMO JOGAR</button>
+
+      <button id="btn-story" class="btn btn--ghost btn--compact" type="button"
+        aria-label="Ler a história do Colégio Kennedy" title="História">HISTÓRIA</button>
     </div>
 
     <!-- Referência e logo do Colégio Kennedy de Ponta Grossa -->
@@ -187,9 +190,33 @@
       <p class="overlay-sub">SEU PROGRESSO ESTÁ SEGURO. CONTINUE QUANDO QUISER.</p>
       <div class="pause-actions">
         <button id="btn-resume" class="btn btn--play btn--compact" type="button"
-          aria-label="Continuar o jogo">CONTINUAR</button>
+          aria-label="Continuar o jogo">CONTINUAR JOGANDO</button>
+        <button id="btn-pause-menu" class="btn btn--ghost btn--compact" type="button"
+          aria-label="Sair da partida e voltar ao menu">VOLTAR AO MENU</button>
       </div>
       <p class="pause-hint">ATALHO: ESC OU P</p>
+    </div>
+  </section>
+
+  <!-- História -->
+  <section id="story" class="overlay" hidden>
+    <div class="panel panel--story">
+      <button id="story-close" class="panel-close" type="button"
+        aria-label="Fechar a história" title="Fechar">✕</button>
+      <p class="story-kicker">COLÉGIO KENNEDY DE PONTA GROSSA</p>
+      <h2 class="overlay-title overlay-title--blood">O SURTO DO KENNEDY</h2>
+
+      <div class="story-body">
+        <p>Era uma manhã comum no <strong>Colégio Kennedy de Ponta Grossa</strong>. O sino tocou, os alunos entraram e ninguém desconfiou de nada. Até que o portão principal travou e o primeiro grito cortou o corredor.</p>
+        <p>Um experimento esquecido nos laboratórios vazou. Em poucas horas, o colégio virou um mar de <strong>infectados</strong>: professores, alunos e funcionários se transformaram em criaturas famintas que só conhecem a noite.</p>
+        <p>Você foi um dos poucos que conseguiu se trancar na quadra. Sem sinal, sem saída e com a horda crescendo a cada dia, só resta uma missão: <strong>sobreviver</strong>.</p>
+        <p>Explore os corredores vazios, saqueie os armários, encontre ferramentas e descubra o que realmente aconteceu no <strong>Kennedy</strong> — antes que a noite te encontre primeiro.</p>
+      </div>
+
+      <p class="story-quote">"O SINO TOCOU. O COLÉGIO CAIU. AGORA É SOBREVIVER À NOITE."</p>
+
+      <button id="story-back" class="btn btn--play btn--compact" type="button"
+        aria-label="Voltar ao menu principal">VOLTAR AO MENU</button>
     </div>
   </section>
 
@@ -278,7 +305,11 @@
     <div class="panel panel--shop">
       <div class="panel-head">
         <h2 class="overlay-title">LOJA</h2>
-        <div class="shop-coins"><span class="money">$</span> <span id="shop-coins-value">0</span></div>
+        <div class="panel-head-side">
+          <div class="shop-coins"><span class="money">$</span> <span id="shop-coins-value">0</span></div>
+          <button id="shop-close" class="panel-close" type="button"
+            aria-label="Fechar a loja e voltar ao menu" title="Fechar a loja">✕</button>
+        </div>
       </div>
 
       <div id="shop-items" class="shop-items"></div>

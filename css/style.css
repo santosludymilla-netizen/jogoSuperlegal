@@ -217,8 +217,9 @@ body {
 
 .kennedy {
   position: fixed;
-  left: 50%;
+  right: calc(16px + env(safe-area-inset-right, 0px));
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: auto;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -230,7 +231,6 @@ body {
   box-shadow:
     0 0 18px rgba(0, 0, 0, 0.7),
     inset 0 0 14px rgba(255, 176, 0, 0.08);
-  transform: translateX(-50%);
   transition: border-color 0.15s ease, box-shadow 0.18s ease, transform 0.1s ease;
 }
 
@@ -240,7 +240,7 @@ body {
   box-shadow:
     0 0 24px rgba(255, 176, 0, 0.4),
     inset 0 0 16px rgba(255, 176, 0, 0.14);
-  transform: translateX(-50%) translateY(-2px);
+  transform: translateY(-2px);
 }
 
 .kennedy-logo {
@@ -500,6 +500,62 @@ body {
   color: #4f554d;
 }
 
+/* ---------- historia ---------- */
+
+.panel--story {
+  position: relative;
+  width: min(92vw, 620px);
+  text-align: left;
+}
+
+.panel--story .panel-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.story-kicker {
+  margin: 0 0 10px;
+  font-size: 0.4rem;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 176, 0, 0.4);
+}
+
+.story-body {
+  margin: 14px 0 18px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.story-body p {
+  margin: 0 0 14px;
+  font-size: 0.46rem;
+  line-height: 2;
+  letter-spacing: 0.05em;
+  color: var(--ash);
+}
+
+.story-body p:last-child {
+  margin-bottom: 0;
+}
+
+.story-body strong {
+  color: var(--green);
+}
+
+.story-quote {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  font-size: 0.42rem;
+  line-height: 1.9;
+  letter-spacing: 0.06em;
+  color: #ff5a72;
+  background: rgba(139, 0, 0, 0.14);
+  border-left: 3px solid #8b0000;
+}
+
 /* ---------- overlays / paineis ---------- */
 
 .overlay {
@@ -536,6 +592,50 @@ body {
 .panel-head .overlay-title {
   margin: 0;
   text-align: left;
+}
+
+.panel-head-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- botao de fechar (X) dos paineis ---------- */
+
+.panel-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-family: var(--font-pixel);
+  font-size: 0.66rem;
+  line-height: 1;
+  color: var(--bone);
+  cursor: pointer;
+  background: rgba(5, 5, 5, 0.62);
+  border: 2px solid rgba(255, 46, 136, 0.5);
+  box-shadow:
+    0 0 14px rgba(0, 0, 0, 0.7),
+    inset 0 0 12px rgba(255, 46, 136, 0.08);
+  transition:
+    color 0.14s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.1s ease;
+}
+
+.panel-close:hover,
+.panel-close:focus-visible {
+  color: #0b0206;
+  background: var(--pink);
+  border-color: var(--pink);
+  box-shadow: 0 0 20px rgba(255, 46, 136, 0.7);
+}
+
+.panel-close:active {
+  transform: scale(0.94);
 }
 
 .overlay-title {
@@ -1757,6 +1857,18 @@ body {
   font-size: 0.36rem;
   line-height: 1.9;
   color: var(--ash);
+}
+
+.shop-card-price {
+  margin: 2px 0 0;
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 176, 0, 0.4);
+}
+
+.shop-card-price .shop-price {
+  color: var(--bone);
 }
 
 .shop-card .shop-price {
