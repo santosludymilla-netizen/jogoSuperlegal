@@ -68,6 +68,7 @@ const hudPhase = document.getElementById('hud-phase');
 const hudZombies = document.getElementById('hud-zombies');
 const hudDamage = document.getElementById('hud-damage');
 const hudResist = document.getElementById('hud-resist');
+const hudBioma = document.getElementById('hud-bioma');
 const hudCoins = document.getElementById('hud-coins');
 const hudTip = document.getElementById('hud-tip');
 const hudChest = document.getElementById('hud-chest');
@@ -506,6 +507,7 @@ const hudCache = {
   resistance: null,
   tip: null,
   boss: null,
+  biome: null,
 };
 
 function resize() {
@@ -612,6 +614,11 @@ function updateHud(info) {
   if (hudCache.resistance !== info.resistance) {
     hudCache.resistance = info.resistance;
     hudResist.textContent = info.resistance;
+  }
+
+  if (hudCache.biome !== info.biome) {
+    hudCache.biome = info.biome;
+    hudBioma.textContent = info.biome;
   }
 
   if (!info.boss) {

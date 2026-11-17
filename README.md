@@ -474,6 +474,9 @@ Em **Settings → Pages**, a fonte é o branch `gh-pages` na raiz (`/`). Como o 
 - [x] **Rótulos e descrições** (`aria-label`/`title`) em todos os botões e abas do jogo
 - [x] Referência e **logo do Colégio Kennedy de Ponta Grossa** no menu, linkando para `https://x.com/pgokennedy`
 - [x] Dois novos personagens: **Celina** (morena de sardinhas, +20% de moedas) e **Gilsane** (cabelo ruivo, +10% de velocidade e +5% de dano)
+- [x] **Progressão contínua de cenário** inspirada em Mercs (Mega Drive): floresta → estrada → cidade abandonada → núcleo da infecção, sem telas de carregamento nem cortes
+
+**Biomas:** a partida avança continuamente por 4 biomas originais a cada ~45 s. Durante a travessia, o terreno rola (sensação de avanço), o fundo novo se mistura ao antigo por ~6 s, um marco visual (ponte, arco de ruínas ou portal) atravessa a tela, a névoa/iluminação e as partículas ambientais mudam (vagalumes → poeira → brasas → esporos) e os zumbis nascem com a paleta e o vigor do bioma em que a partida está. O HUD mostra a **REGIÃO** atual. O som de travessia é uma varredura de frequência sintetizada na hora via WebAudio (sem assets), liberada após o primeiro gesto do jogador. Câmera, movimento, dia/noite, baú, chefe e servidores continuam exatamente como antes — o bioma é uma camada visual em cima do sistema existente.
 
 **Pausa:** o estado `playing` ganhou um booleano `paused`. Com a partida pausada, o `requestAnimationFrame` continua desenhando o cenário, mas não chama `game.update()` — o mundo congela sem perder progresso. O botão só aparece durante a partida e alterna entre pausar e continuar.
 
