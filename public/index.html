@@ -6,6 +6,13 @@
   <meta name="theme-color" content="#050505">
   <title>INFECTED</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="INFECTED">
 </head>
 <body>
   <canvas id="scene" aria-hidden="true"></canvas>
@@ -58,8 +65,12 @@
       <span class="menu-player-name">JOGADOR: <strong id="menu-player-name">-</strong></span>
       <span id="menu-player-level" class="menu-player-level">NÍVEL 1 · SOBREVIVENTE</span>
       <span id="menu-player-perk" class="menu-player-perk"></span>
-      <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button"
-        aria-label="Sair da conta" title="Sair da conta">SAIR</button>
+      <div class="menu-player-actions">
+        <button id="btn-profile" class="btn btn--ghost btn--tiny" type="button"
+          aria-label="Abrir o perfil da conta" title="Perfil">PERFIL</button>
+        <button id="btn-logout" class="btn btn--ghost btn--tiny" type="button"
+          aria-label="Sair da conta" title="Sair da conta">SAIR</button>
+      </div>
     </div>
   </div>
 
@@ -298,6 +309,43 @@
 
       <button id="inventory-back" class="btn btn--ghost" type="button"
         aria-label="Voltar ao menu">VOLTAR</button>
+    </div>
+  </section>
+
+  <!-- Perfil da conta (CRUD: editar nome / excluir conta) -->
+  <section id="profile" class="overlay" hidden>
+    <div class="panel panel--profile">
+      <div class="panel-head">
+        <h2 class="overlay-title">MEU PERFIL</h2>
+        <button id="profile-close" class="panel-close" type="button"
+          aria-label="Fechar o perfil" title="Fechar">✕</button>
+      </div>
+
+      <p class="overlay-sub">EDITE SEU NOME OU EXCLUA A CONTA.</p>
+
+      <label class="auth-field" for="profile-name">
+        <span>NOME</span>
+        <input id="profile-name" name="profile-name" type="text" maxlength="16"
+          autocomplete="username" spellcheck="false" aria-label="Novo nome de jogador">
+      </label>
+
+      <button id="profile-save" class="btn btn--play btn--compact" type="button"
+        aria-label="Salvar o novo nome">SALVAR NOME</button>
+
+      <hr class="profile-divider">
+
+      <p class="profile-danger-text">
+        EXCLUIR A CONTA APAGA MOEDAS, ITENS, CONQUISTAS E O HISTÓRICO. ESSA AÇÃO NÃO TEM VOLTA.
+      </p>
+
+      <label class="auth-field" for="profile-password">
+        <span>CONFIRME SUA SENHA</span>
+        <input id="profile-password" name="profile-password" type="password" maxlength="64"
+          autocomplete="current-password" aria-label="Senha para confirmar a exclusão">
+      </label>
+
+      <button id="profile-delete" class="btn btn--danger btn--compact" type="button"
+        aria-label="Excluir a conta permanentemente">EXCLUIR CONTA</button>
     </div>
   </section>
 

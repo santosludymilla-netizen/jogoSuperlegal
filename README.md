@@ -3,9 +3,11 @@
 Jogo de sobrevivência de zumbis em 2D pixel art que roda no navegador, feito com Node.js.
 Estética dark e macabra com contraste entre **verde neon** e **rosa neon**.
 
+> Desenvolvido com **OpenCode** (agente de desenvolvimento com IA) + HTML, CSS e JavaScript puro.
+
 > Este README é o registro vivo do planejamento: toda ideia ou etapa nova é adicionada aqui.
 
-**Status atual:** jogável **no computador e no celular**, com link público no **GitHub Pages** e progresso salvo **no navegador** (modo local), além do modo servidor com SQLite. Login com banco de dados, menu, floresta, dias de **10 segundos** com cura, noites de combate, arsenal com raridades e armas mais fortes/rápidas, baú dourado a cada 2 dias com escolha de troca, chefe a cada 10 dias com resistência proporcional ao jogador, **XP/nível/títulos**, loja de ferramentas, poções e skins com ferramenta inicial, e inventário com equipar de skins/ferramentas e conquistas.
+**Status atual:** jogável **no computador e no celular**, com link público no **GitHub Pages** e progresso salvo **no navegador** (modo local), além do modo servidor com SQLite. Login com banco de dados, menu, floresta, dias de **10 segundos** com cura, noites de combate, arsenal com raridades e armas mais fortes/rápidas, baú dourado a cada 2 dias com escolha de troca, chefe a cada 10 dias com resistência proporcional ao jogador, **XP/nível/títulos**, loja de ferramentas, poções e skins com ferramenta inicial, inventário com equipar de skins/ferramentas, conquistas, **biomas com progressão contínua de cenário**, **PWA instalável** e **CRUD completo de conta** (cadastro, consulta, edição e exclusão).
 
 ## Jogar agora
 
@@ -483,3 +485,40 @@ Em **Settings → Pages**, a fonte é o branch `gh-pages` na raiz (`/`). Como o 
 **Sardinhas da Celina:** o personagem pode ter uma lista opcional `details` (pixels em coordenadas do sprite). Esses pontos são desenhados por cima do rosto no `drawPlayer` e também no ícone da loja/inventário, então a skin fica reconhecível nos dois lugares.
 
 **Logo do colégio:** a imagem fica em `public/assets/kennedy.jpg` e o bloco `#menu-kennedy` no menu abre o perfil `https://x.com/pgokennedy` em nova aba.
+---
+
+## Requisitos do projeto (checklist)
+
+| Requisito | Onde está |
+|---|---|
+| OpenCode como ferramenta de desenvolvimento com IA | Desenvolvimento inteiro feito com o agente OpenCode |
+| HTML, CSS e JavaScript | `public/index.html`, `public/css/style.css`, `public/js/*.js` |
+| Interface visual funcional e responsiva | Tema neon pixel-art, media queries em 720 px, analógicos de toque, `env(safe-area-inset-*)` |
+| Cadastro, consulta, edição e exclusão (CRUD) | `POST /api/auth/register` (Create), `GET /api/state` + `/api/inventory` (Read), `PUT /api/auth/name` + compras/equipar (Update), `DELETE /api/auth/account` (Delete) — painel **PERFIL** no menu |
+| Banco de dados | SQLite via `node:sqlite` (`db.js`, `data/jogo.db`); modo local usa `localStorage` |
+| PWA (manifest.json + Service Worker) | `public/manifest.webmanifest`, `public/sw.js`, ícones em `public/assets/icons/` |
+| Instalação em dispositivos móveis | Manifest `display: standalone` + Service Worker; instale pelo menu do navegador ("Instalar app") |
+| Repositório público no GitHub | [santosludymilla-netizen/jogoSuperlegal](https://github.com/santosludymilla-netizen/jogoSuperlegal) |
+| Publicação online | GitHub Pages (link acima) e **Render.com** (`render.yaml` + `Procfile`, health check em `/healthz`) |
+
+### CRUD detalhado
+
+- **Create:** `POST /api/auth/register` — cria conta (nome único, senha com scrypt + salt) e devolve token.
+- **Read:** `GET /api/state` (jogador + loja + conquistas) e `GET /api/inventory` (inventário).
+- **Update:** `PUT /api/auth/name` (renomear conta, painel PERFIL), `POST /api/tool/select`, `POST /api/character/select`, compras na loja, `POST /api/run/report` (progresso da partida).
+- **Delete:** `DELETE /api/auth/account` — exclui a conta permanentemente após confirmar a senha; cascata nas tabelas filhas via `ON DELETE CASCADE`.
+
+### PWA
+
+- `manifest.webmanifest` com nome, cores, ícones 192/512 e maskable.
+- `sw.js`: app shell em cache, navegação "rede primeiro" com fallback offline, assets "cache primeiro", API sempre na rede.
+- Para instalar no celular: abra o link, aguarde o banner "Instalar app" (ou use o menu do navegador → "Adicionar à tela inicial").
+
+### Deploy no Render
+
+O `render.yaml` (Blueprint) cria o serviço automaticamente: `buildCommand: npm install`, `startCommand: node server.js`, health check em `/healthz`. Para publicar:
+
+1. Crie a conta em [render.com](https://render.com) e conecte o repo `santosludymilla-netizen/jogoSuperlegal`.
+2. **New + → Web Service → GitHub repo** (ou importe o `render.yaml` como Blueprint).
+3. Ambiente: Node; o `render.yaml` já traz build/start/health check.
+4. O serviço sobe em `https://jogo-superlegal-<seu-user>.onrender.com` — mesmo código do Pages, agora com banco SQLite no servidor.

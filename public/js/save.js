@@ -288,6 +288,19 @@ export async function selectTool(toolId) {
   return data;
 }
 
+// CRUD - Update: altera o nome da conta logada.
+export async function updateName(name) {
+  const data = await request('/api/auth/name', { method: 'PUT', body: { name } });
+  applyState(data);
+  return data;
+}
+
+// CRUD - Delete: exclui a conta; o logout já limpa token e estado local.
+export async function deleteAccount(password) {
+  await request('/api/auth/account', { method: 'DELETE', body: { password } });
+  await logout();
+}
+
 export function toolBonus(potions) {
   return potions * 5;
 }

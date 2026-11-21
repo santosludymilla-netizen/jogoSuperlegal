@@ -1110,6 +1110,12 @@ body {
   color: var(--pink);
 }
 
+.menu-player-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .btn--tiny {
   align-self: flex-start;
   padding: 6px 10px;
@@ -1242,6 +1248,47 @@ body {
 
 .auth-pw-toggle.is-visible .pw-icon--eye-off {
   display: block;
+}
+
+/* ---------- perfil da conta (CRUD) ---------- */
+
+.panel--profile {
+  width: min(92vw, 460px);
+}
+
+.profile-divider {
+  margin: 22px 0 14px;
+  border: none;
+  border-top: 2px dashed rgba(255, 46, 136, 0.35);
+}
+
+.profile-danger-text {
+  margin: 0 0 14px;
+  font-size: 0.38rem;
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+  color: #ff5a72;
+}
+
+.btn--danger {
+  color: #ff5a72;
+  background: #160407;
+  border-color: #8b0000;
+}
+
+.btn--danger:hover,
+.btn--danger:focus-visible {
+  color: #0b0206;
+  background: #ff3b52;
+  border-color: #ff3b52;
+  box-shadow:
+    0 0 20px rgba(255, 59, 82, 0.7),
+    3px 3px 0 rgba(0, 0, 0, 0.8);
+}
+
+.panel--profile .btn--compact {
+  width: 100%;
+  margin-top: 16px;
 }
 
 .auth-error {

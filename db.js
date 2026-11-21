@@ -666,6 +666,40 @@ const store = {
     return { player: this.getPlayer(playerId) };
   },
 
+  // CRUD - Update: altera o nome de exibição da conta.
+  updateName(playerId, name) {
+    const nameError = this.validateName(name);
+    if (nameError) return { error: nameError };
+
+    const existing = db
+      .prepare('SELECT id FROM players WHERE name_key = ? AND id <> ?')
+      .get(String(name).toLowerCase(), playerId);
+    if (existing) return { error: 'ESSE NOME JÁ EXISTE. ESCOLHA OUTRO.' };
+
+    db.prepare('UPDATE players SET name = ?, name_key = ?, updated_at = ? WHERE id = ?').run(
+      name,
+      String(name).toLowerCase(),
+      now(),
+      playerId
+    );
+
+    return { player: this.getPlayer(playerId) };
+  },
+
+  // CRUD - Delete: exclui a conta depois de confirmar a senha.
+  // As tabelas filhas (sessões, ferramentas, personagens, itens, conquistas,
+  // baús) são apagadas em cascata pela FK ON DELETE CASCADE.
+  deletePlayer(playerId, password) {
+    const row = db.prepare('SELECT * FROM players WHERE id = ?').get(playerId);
+    if (!row) return { error: 'JOGADOR NÃO ENCONTRADO.' };
+    if (typeof password !== 'string' || !verifyPassword(password, row.password_salt, row.password_hash)) {
+      return { error: 'SENHA INCORRETA. CONTA NÃO EXCLUÍDA.' };
+    }
+
+    db.prepare('DELETE FROM players WHERE id = ?').run(playerId);
+    return { ok: true };
+  },
+
   // Abre o baú dourado do dia. O servidor escolhe a ferramenta, nunca o cliente.
   openChest(playerId, day) {
     const safeDay = Math.floor(Number(day) || 0);

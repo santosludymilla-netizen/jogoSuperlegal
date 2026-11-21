@@ -6,6 +6,8 @@ import {
   login,
   register,
   logout,
+  updateName,
+  deleteAccount,
   clearToken,
   reportRun,
   openChest,
@@ -125,6 +127,14 @@ const storyBack = document.getElementById('story-back');
 
 const menuLocalNote = document.getElementById('menu-local-note');
 const authLocalNote = document.getElementById('auth-local-note');
+
+const btnProfile = document.getElementById('btn-profile');
+const profilePanel = document.getElementById('profile');
+const profileClose = document.getElementById('profile-close');
+const profileName = document.getElementById('profile-name');
+const profilePassword = document.getElementById('profile-password');
+const profileSave = document.getElementById('profile-save');
+const profileDelete = document.getElementById('profile-delete');
 
 const touchControls = document.getElementById('touch-controls');
 const stickMoveEl = document.getElementById('stick-move');
@@ -645,6 +655,8 @@ function showAuth(mode = 'login') {
   state = 'auth';
   authMode = mode;
   setPaused(false);
+  profilePanel.hidden = true;
+  storyPanel.hidden = true;
 
   menu.classList.add('is-hidden');
   menuCoins.hidden = true;
@@ -681,6 +693,8 @@ function showMenu() {
   auth.hidden = true;
   hud.hidden = true;
   bossBar.hidden = true;
+  profilePanel.hidden = true;
+  storyPanel.hidden = true;
   menu.classList.remove('is-hidden');
   menuCoins.hidden = false;
   menuTopLeft.hidden = false;
@@ -1217,6 +1231,52 @@ function closeStory() {
   storyPanel.hidden = true;
 }
 
+// ---------- perfil (CRUD: update + delete) ----------
+
+function openProfile() {
+  profileName.value = save.name || '';
+  profilePassword.value = '';
+  profilePanel.hidden = false;
+}
+
+function closeProfile() {
+  profilePanel.hidden = true;
+}
+
+async function saveProfileName() {
+  const name = profileName.value.trim();
+  if (!name) return;
+
+  try {
+    await updateName(name);
+    updatePlayerBadge();
+    closeProfile();
+    showToast('NOME ATUALIZADO.');
+  } catch (error) {
+    showToast(error.message, true);
+  }
+}
+
+async function confirmDeleteAccount() {
+  const password = profilePassword.value;
+  if (!password) {
+    showToast('DIGITE SUA SENHA PARA EXCLUIR A CONTA.', true);
+    return;
+  }
+  if (!window.confirm('TEM CERTEZA? A CONTA E TODO O PROGRESSO SÃO APAGADOS PARA SEMPRE.')) {
+    return;
+  }
+
+  try {
+    await deleteAccount(password);
+    closeProfile();
+    showAuth('login');
+    showToast('CONTA EXCLUÍDA. ATÉ LOGO.');
+  } catch (error) {
+    showToast(error.message, true);
+  }
+}
+
 function renderShop() {
   shopCoinsValue.textContent = save.coins;
 
@@ -1427,6 +1487,11 @@ btnStory.addEventListener('click', openStory);
 storyClose.addEventListener('click', closeStory);
 storyBack.addEventListener('click', closeStory);
 
+btnProfile.addEventListener('click', openProfile);
+profileClose.addEventListener('click', closeProfile);
+profileSave.addEventListener('click', saveProfileName);
+profileDelete.addEventListener('click', confirmDeleteAccount);
+
 chestEquip.addEventListener('click', () => finishChest(true));
 chestKeep.addEventListener('click', () => finishChest(false));
 
@@ -1544,6 +1609,11 @@ window.addEventListener('keydown', (event) => {
 
   if (event.key !== 'Escape') return;
 
+  if (!profilePanel.hidden) {
+    closeProfile();
+    return;
+  }
+
   if (!storyPanel.hidden) {
     closeStory();
     return;
@@ -1647,6 +1717,18 @@ if (new URLSearchParams(window.location.search).has('debug')) {
     quitToMenu,
     showToast,
   };
+}
+
+// PWA: registra o service worker quando servido via HTTPS (ou localhost).
+if (
+  'serviceWorker' in navigator &&
+  (location.protocol === 'https:' ||
+    location.hostname === 'localhost' ||
+    location.hostname === '127.0.0.1')
+) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
 }
 
 boot();

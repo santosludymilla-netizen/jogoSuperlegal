@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jogoSuperlegal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <div class="fx fx--scanlines" aria-hidden="true"></div>
+  <div class="fx fx--vignette" aria-hidden="true"></div>
+  <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+
+  <div id="blood" class="blood" aria-hidden="true">
+    <span style="--x: 8%;  --h: 74px; --w: 11px; --d: -2s;"></span>
+    <span style="--x: 19%; --h: 38px; --w: 7px;  --d: -7s;"></span>
+    <span style="--x: 33%; --h: 96px; --w: 14px; --d: -4s;"></span>
+    <span style="--x: 47%; --h: 28px; --w: 6px;  --d: -9s;"></span>
+    <span style="--x: 62%; --h: 64px; --w: 10px; --d: -1s;"></span>
+    <span style="--x: 76%; --h: 44px; --w: 8px;  --d: -6s;"></span>
+    <span style="--x: 88%; --h: 82px; --w: 12px; --d: -3s;"></span>
+    <span style="--x: 96%; --h: 34px; --w: 6px;  --d: -8s;"></span>
+  </div>
+
+  <div id="menu-coins" class="menu-coins">
+    <span class="money">$</span>
+    <span id="menu-coins-value">0</span>
+  </div>
+
+  <main id="menu" class="menu">
+    <h1 class="title" data-text="JOGO SUPERLEGAL">JOGO SUPERLEGAL</h1>
+    <p class="tagline">SOBREVIVA À NOITE</p>
+
+    <div class="buttons">
+      <button id="btn-play" class="btn btn--play" type="button">JOGAR</button>
+
+      <button id="btn-shop" class="btn btn--shop" type="button">
+        <span class="money" aria-hidden="true">$</span>
+        <span>LOJA</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- HUD da partida -->
+  <section id="hud" class="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-left">
+        <p class="hud-row"><span class="hud-label">DIA</span> <strong id="hud-day">1</strong></p>
+        <p class="hud-row"><span class="hud-label">ZUMBIS</span> <strong id="hud-zombies">0/1</strong></p>
+        <div class="hud-health">
+          <div class="health-bar"><div id="health-fill"></div></div>
+          <span id="health-text">100</span>
+        </div>
+      </div>
+      <div class="hud-coins">
+        <span class="money">$</span>
+        <strong id="hud-coins">0</strong>
+      </div>
+    </div>
+    <p id="hud-tip" class="hud-tip"></p>
+  </section>
+
+  <!-- Escolha da ferramenta -->
+  <section id="tool-select" class="overlay" hidden>
+    <div class="panel">
+      <h2 class="overlay-title">ESCOLHA A FERRAMENTA</h2>
+      <p class="overlay-sub">AS DUAS CAUSAM <strong>5</strong> DE DANO</p>
+
+      <div class="tool-grid">
+        <button class="tool" type="button" data-tool="knife">
+          <svg class="tool-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path fill="#d8d8d0" d="M4 12h2v-2h2V8h2V6h2V4h2V2h-2v2H8v2H6v2H4v2H2v2z"/>
+            <rect x="2" y="12" width="4" height="2" fill="#ff2e88"/>
+          </svg>
+          <span class="tool-name">FACA</span>
+          <span class="tool-desc">RÁPIDA<br>ALCANCE CURTO</span>
+        </button>
+
+        <button class="tool" type="button" data-tool="axe">
+          <svg class="tool-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <rect x="7" y="4" width="2" height="11" fill="#7a4b22"/>
+            <path fill="#d8d8d0" d="M3 3h6v2h1v4h-1v2H3V9h2V7H3z"/>
+            <path fill="#ff2e88" d="M2 4h1v4H2z"/>
+          </svg>
+          <span class="tool-name">MACHADO</span>
+          <span class="tool-desc">LENTO<br>ALCANCE MAIOR</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loja -->
+  <section id="shop" class="overlay" hidden>
+    <div class="panel panel--shop">
+      <div class="panel-head">
+        <h2 class="overlay-title">LOJA</h2>
+        <div class="shop-coins"><span class="money">$</span> <span id="shop-coins-value">0</span></div>
+      </div>
+
+      <div id="shop-items" class="shop-items"></div>
+
+      <button id="shop-back" class="btn btn--ghost" type="button">VOLTAR</button>
+    </div>
+  </section>
+
+  <!-- Fim de jogo -->
+  <section id="gameover" class="overlay" hidden>
+    <div class="panel">
+      <h2 class="overlay-title overlay-title--blood">VOCÊ MORREU</h2>
+      <p id="gameover-info" class="overlay-sub">VOCÊ CHEGOU AO DIA 1</p>
+      <p class="overlay-sub"><span class="money">$</span> <span id="gameover-coins">0</span> GANHAS NESTA PARTIDA</p>
+      <button id="gameover-menu" class="btn btn--play btn--compact" type="button">VOLTAR AO MENU</button>
+    </div>
+  </section>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

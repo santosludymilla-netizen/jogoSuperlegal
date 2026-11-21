@@ -430,7 +430,41 @@ function logout() {
   return { ok: true };
 }
 
-function state() {
+// CRUD - Update (modo local): altera o nome de exibição.
+async function updateName({ name } = {}) {
+  const player = requirePlayer();
+  const nameError = validateName(name);
+  if (nameError) throw new Error(nameError);
+
+  const store = readStore();
+  const clash = playerByName(store, name);
+  if (clash && clash.id !== player.id) throw new Error('ESSE NOME JÁ EXISTE. ESCOLHA OUTRO.');
+
+  player.name = name;
+  player.nameKey = String(name).toLowerCase();
+  player.updatedAt = now();
+  savePlayer(player);
+
+  return stateOf(player);
+}
+
+// CRUD - Delete (modo local): exclui a conta após confirmar a senha.
+async function deleteAccount({ password } = {}) {
+  const player = requirePlayer();
+
+  if (typeof password !== 'string') throw new Error('INFORME A SENHA PARA EXCLUIR A CONTA.');
+  const candidate = await hashPassword(password, player.salt);
+  if (candidate !== player.passwordHash) {
+    throw new Error('SENHA INCORRETA. CONTA NÃO EXCLUÍDA.');
+  }
+
+  const store = readStore();
+  store.players = store.players.filter((entry) => entry.id !== player.id);
+  writeStore(store);
+  writeSessionId(null);
+
+  return { ok: true };
+}function state() {
   return stateOf(requirePlayer());
 }
 
@@ -605,6 +639,8 @@ function selectTool({ toolId } = {}) {
 const routes = {
   'POST /api/auth/register': register,
   'POST /api/auth/login': login,
+  'PUT /api/auth/name': updateName,
+  'DELETE /api/auth/account': deleteAccount,
   'POST /api/auth/logout': logout,
   'GET /api/state': state,
   'GET /api/inventory': inventory,

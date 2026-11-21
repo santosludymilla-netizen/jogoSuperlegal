@@ -140,6 +140,23 @@ app.post('/api/auth/logout', auth, (request, response) => {
   response.json({ ok: true });
 });
 
+// CRUD - Update: edita o nome da conta logada.
+app.put('/api/auth/name', auth, (request, response) => {
+  const { name } = request.body || {};
+  const result = store.updateName(request.playerRow.id, name);
+  if (result.error) return fail(response, 400, result.error);
+  response.json(stateOf(result.player.id));
+});
+
+// CRUD - Delete: exclui a conta (exige a senha de confirmação).
+app.delete('/api/auth/account', auth, (request, response) => {
+  const { password } = request.body || {};
+  const result = store.deletePlayer(request.playerRow.id, password);
+  if (result.error) return fail(response, 400, result.error);
+  store.destroySession(tokenFrom(request));
+  response.json({ ok: true });
+});
+
 // ---------- estado e progresso ----------
 
 app.get('/api/state', auth, (request, response) => {
@@ -234,6 +251,11 @@ app.use(
     },
   })
 );
+
+// Health check para plataformas de deploy (Render, etc.).
+app.get('/healthz', (request, response) => {
+  response.json({ ok: true, service: 'jogo-superlegal' });
+});
 
 app.use((request, response) => {
   if (request.path.startsWith('/api/')) {

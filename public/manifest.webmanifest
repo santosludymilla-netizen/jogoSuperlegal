@@ -1,0 +1,33 @@
+{
+  "name": "INFECTED - Sobreviva à Noite",
+  "short_name": "INFECTED",
+  "description": "Jogo de sobrevivência zumbi 2D em pixel art. Avance por biomas, compre ferramentas e personagens e salve seu progresso.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#050505",
+  "background_color": "#050505",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
